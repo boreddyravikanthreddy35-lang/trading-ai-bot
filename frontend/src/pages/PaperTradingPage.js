@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import {
   Tabs, TabsList, TabsTrigger, TabsContent
 } from "@/components/ui/tabs";
@@ -32,17 +33,21 @@ export default function PaperTradingPage() {
   const [symbol, setSymbol] = useState("BTCUSDT");
   const [amount, setAmount] = useState(500);
   const [amountMode, setAmountMode] = useState("quote"); // quote (USD) | qty
+  const [useTestnet, setUseTestnet] = useState(false);
+  const [testnetStatus, setTestnetStatus] = useState(null);
   const [busy, setBusy] = useState(false);
 
   const load = async () => {
     setError(null);
     try {
-      const [p, t] = await Promise.all([
+      const [p, t, s] = await Promise.all([
         api.get("/paper/portfolio"),
         api.get("/paper/trades", { params: { limit: 50 } }),
+        api.get("/settings/exchange/binance-testnet"),
       ]);
       setPortfolio(p.data);
       setTrades(t.data.trades || []);
+      setTestnetStatus(s.data);
     } catch (e) {
       setError(e?.response?.data?.detail || "Failed to load portfolio");
     }
@@ -56,10 +61,11 @@ export default function PaperTradingPage() {
     if (!value || value <= 0) return toast.error("Enter a valid amount");
     setBusy(true);
     try {
-      const body = { symbol, side };
+      const body = { symbol, side, use_testnet: useTestnet };
       if (amountMode === "quote") body.quote_amount = value; else body.quantity = value;
       const { data } = await api.post("/paper/order", body);
-      toast.success(`${data.side} filled: ${data.quantity.toFixed(6)} @ ${formatUSD(data.price)}`);
+      const src = data.source === "binance_testnet" ? "TESTNET" : "PAPER";
+      toast.success(`${src} ${data.side}: ${data.quantity.toFixed(6)} @ ${formatUSD(data.price)}`);
       load();
     } catch (e) {
       toast.error(e?.response?.data?.detail || "Order failed");
@@ -149,9 +155,30 @@ export default function PaperTradingPage() {
                   className="mt-1" placeholder={amountMode === "quote" ? "USD amount" : "Coin qty"}
                 />
               </div>
+
+              <div className="rounded-lg border border-border/70 bg-background/40 px-3 py-2.5 flex items-center justify-between" data-testid="testnet-toggle-card">
+                <div>
+                  <div className="text-xs font-medium">Route via Binance testnet</div>
+                  <div className="text-[11px] text-muted-foreground">
+                    {testnetStatus?.enabled ? "Keys enabled" : (testnetStatus?.configured ? "Keys configured — enable in Settings" : "Add keys in Settings")}
+                  </div>
+                </div>
+                <Switch
+                  checked={useTestnet}
+                  onCheckedChange={(v) => {
+                    if (v && !testnetStatus?.enabled) {
+                      toast.error("Enable Binance testnet in Settings first");
+                      return;
+                    }
+                    setUseTestnet(v);
+                  }}
+                  data-testid="paper-testnet-switch"
+                />
+              </div>
+
               <Button className={`w-full relative z-10 ${side === "BUY" ? "bg-[hsl(var(--up))] hover:bg-[hsl(var(--up))]/90 text-white" : "bg-[hsl(var(--down))] hover:bg-[hsl(var(--down))]/90 text-white"}`}
                 onClick={placeOrder} disabled={busy} data-testid="order-ticket-submit-button">
-                {busy ? <><span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" /> Placing…</> : `${side} ${symbol}`}
+                {busy ? <><span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" /> Placing…</> : `${side} ${symbol}${useTestnet ? " (Testnet)" : ""}`}
               </Button>
             </div>
           </div>

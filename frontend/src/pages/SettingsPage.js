@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Settings as SettingsIcon, Key, Shield, LogOut, User as UserIcon } from "lucide-react";
+import { Settings as SettingsIcon, Key, Shield, LogOut, User as UserIcon, PlugZap, CheckCircle2, XCircle } from "lucide-react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,8 @@ export default function SettingsPage() {
   const [apiSecret, setApiSecret] = useState("");
   const [enabled, setEnabled] = useState(false);
   const [error, setError] = useState(null);
+  const [testResult, setTestResult] = useState(null);
+  const [testing, setTesting] = useState(false);
 
   const load = async () => {
     setError(null);
@@ -46,8 +48,23 @@ export default function SettingsPage() {
     try {
       await api.delete("/settings/exchange/binance-testnet");
       toast.success("Keys removed");
+      setTestResult(null);
       load();
     } catch (e) { toast.error("Delete failed"); }
+  };
+
+  const testConnection = async () => {
+    setTesting(true);
+    setTestResult(null);
+    try {
+      const { data } = await api.post("/settings/exchange/binance-testnet/test");
+      setTestResult(data);
+      if (data.status === "ok") toast.success("Testnet reachable & authenticated");
+      else if (data.status === "geo_restricted") toast.error("Testnet is geo-restricted from this deployment");
+      else toast.error(`Testnet error: ${data.error || "unknown"}`);
+    } catch (e) {
+      toast.error(e?.response?.data?.detail || "Test failed");
+    } finally { setTesting(false); }
   };
 
   return (
@@ -119,18 +136,41 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          <div className="mt-3 flex items-center justify-between">
+          <div className="mt-3 flex items-center justify-between flex-wrap gap-2">
             <div className="flex items-center gap-2">
               <Switch checked={enabled} onCheckedChange={setEnabled} data-testid="binance-enabled-switch" />
               <span className="text-sm text-muted-foreground">Route future orders through Binance testnet (when live)</span>
             </div>
             <div className="flex items-center gap-2">
               {settings?.configured ? (
-                <Button variant="outline" onClick={clearKeys} data-testid="binance-clear-btn">Remove keys</Button>
+                <>
+                  <Button variant="outline" onClick={testConnection} disabled={testing} data-testid="binance-test-btn">
+                    {testing ? <><span className="h-4 w-4 border-2 border-primary border-t-transparent rounded-full animate-spin mr-2" /> Testing…</> : <><PlugZap className="h-4 w-4 mr-2" /> Test connection</>}
+                  </Button>
+                  <Button variant="outline" onClick={clearKeys} data-testid="binance-clear-btn">Remove keys</Button>
+                </>
               ) : null}
               <Button onClick={save} data-testid="binance-save-btn">Save keys</Button>
             </div>
           </div>
+
+          {testResult ? (
+            <div className="mt-4 rounded-lg border border-border bg-background/40 p-3" data-testid="binance-test-result">
+              <div className="flex items-center gap-2 text-sm">
+                {testResult.status === "ok" ? (
+                  <><CheckCircle2 className="h-4 w-4 text-[hsl(var(--success))]" /><span>Connected & authenticated</span></>
+                ) : (
+                  <><XCircle className="h-4 w-4 text-[hsl(var(--danger))]" /><span>{testResult.status === "geo_restricted" ? "Geo-restricted from this deployment region" : "Connection failed"}</span></>
+                )}
+              </div>
+              {testResult.error ? <div className="mt-2 text-xs text-muted-foreground break-words">{testResult.error}</div> : null}
+              {testResult.account?.balances?.length ? (
+                <div className="mt-2 text-xs text-muted-foreground">
+                  Non-zero balances: {testResult.account.balances.map((b) => `${b.asset}=${b.free}`).join(" · ")}
+                </div>
+              ) : null}
+            </div>
+          ) : null}
 
           {error ? <div className="mt-3"><ErrorState message={error} onRetry={load} /></div> : null}
         </section>

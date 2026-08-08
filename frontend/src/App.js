@@ -18,6 +18,7 @@ import PaperTradingPage from "@/pages/PaperTradingPage";
 import WatchlistsPage from "@/pages/WatchlistsPage";
 import AlertsPage from "@/pages/AlertsPage";
 import SettingsPage from "@/pages/SettingsPage";
+import BotsPage from "@/pages/BotsPage";
 
 function Shell({ children }) {
   return (
@@ -52,6 +53,7 @@ function App() {
           <Route path="/dashboard" element={<Shell><DashboardPage /></Shell>} />
           <Route path="/coin/:symbol" element={<Shell><CoinPage /></Shell>} />
           <Route path="/signals" element={<Shell><SignalsPage /></Shell>} />
+          <Route path="/bots" element={<Shell><BotsPage /></Shell>} />
           <Route path="/backtest" element={<Shell><BacktestPage /></Shell>} />
           <Route path="/paper-trading" element={<Shell><PaperTradingPage /></Shell>} />
           <Route path="/watchlists" element={<Shell><WatchlistsPage /></Shell>} />

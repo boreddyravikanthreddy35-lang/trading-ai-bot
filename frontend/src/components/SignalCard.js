@@ -1,11 +1,11 @@
 import React from "react";
 import { motion } from "framer-motion";
-import { TrendingUp, TrendingDown, Minus, ExternalLink, Copy, Sparkles } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus, Copy, Sparkles, MessageCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Button } from "@/components/ui/button";
-import { formatUSD, formatNumber } from "@/lib/format";
+import { formatUSD } from "@/lib/format";
 import { toast } from "sonner";
+import { ChatDrawer } from "@/components/ChatDrawer";
 
 const actionColors = {
   BUY:  { bg: "bg-[hsl(var(--success))]/12", border: "border-[hsl(var(--success))]/40", text: "text-[hsl(var(--success))]", icon: TrendingUp },
@@ -35,7 +35,7 @@ function copy(value, name) {
   } catch { /* no-op */ }
 }
 
-export function SignalCard({ result, symbol, timeframe, className = "" }) {
+export function SignalCard({ result, symbol, timeframe, signalId, className = "" }) {
   if (result?.error) {
     return (
       <div data-testid="signal-card-error" className={`rounded-xl border border-[hsl(var(--danger))]/40 bg-card p-5 ${className}`}>
@@ -127,8 +127,11 @@ export function SignalCard({ result, symbol, timeframe, className = "" }) {
         <span className="text-foreground/90">{s.indicator_summary}</span>
       </div>
 
-      <div className="mt-4 flex items-center justify-between text-xs text-muted-foreground">
+      <div className="mt-4 flex items-center justify-between text-xs text-muted-foreground gap-3 flex-wrap">
         <span className="uppercase tracking-wider">Horizon: <span className="text-foreground">{s.time_horizon}</span></span>
+        {signalId ? (
+          <ChatDrawer signalId={signalId} triggerLabel="Chat with AI" triggerVariant="outline" />
+        ) : null}
       </div>
     </motion.div>
   );

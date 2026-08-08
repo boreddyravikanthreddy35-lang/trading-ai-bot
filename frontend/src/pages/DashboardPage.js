@@ -223,7 +223,7 @@ export default function DashboardPage() {
             ) : quickResult?.results?.length ? (
               <div className="mt-4 space-y-3">
                 {quickResult.results.map((r, i) => (
-                  <SignalCard key={i} result={r} symbol={quickResult.symbol} timeframe={quickResult.timeframe} />
+                  <SignalCard key={i} result={r} symbol={quickResult.symbol} timeframe={quickResult.timeframe} signalId={quickResult.id} />
                 ))}
               </div>
             ) : null}

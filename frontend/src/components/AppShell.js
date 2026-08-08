@@ -1,21 +1,30 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
   LayoutDashboard, Sparkles, FlaskConical, Wallet, Star, Bell, Settings as SettingsIcon,
-  TrendingUp, LogOut, User as UserIcon, ChevronRight
+  TrendingUp, LogOut, ChevronRight, Bot as BotIcon, Check
 } from "lucide-react";
 import { motion } from "framer-motion";
+import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
+import { api } from "@/lib/api";
+import { shortDate } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
   DropdownMenuSeparator, DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
+import {
+  Popover, PopoverContent, PopoverTrigger
+} from "@/components/ui/popover";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 const NAV_ITEMS = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, testId: "nav-dashboard-link" },
   { to: "/signals", label: "AI Signals", icon: Sparkles, testId: "nav-signals-link" },
+  { to: "/bots", label: "AI Bots", icon: BotIcon, testId: "nav-bots-link" },
   { to: "/backtest", label: "Backtesting", icon: FlaskConical, testId: "nav-backtest-link" },
   { to: "/paper-trading", label: "Paper Trading", icon: Wallet, testId: "nav-paper-trading-link" },
   { to: "/watchlists", label: "Watchlists", icon: Star, testId: "nav-watchlists-link" },
@@ -53,16 +62,11 @@ export function AppShell({ children }) {
                 to={item.to}
                 data-testid={item.testId}
                 className={`group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors ${
-                  active
-                    ? "bg-muted/60 text-foreground"
-                    : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
+                  active ? "bg-muted/60 text-foreground" : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
                 }`}
               >
                 {active && (
-                  <motion.span
-                    layoutId="nav-indicator"
-                    className="absolute left-0 top-2 bottom-2 w-[3px] rounded-full bg-primary"
-                  />
+                  <motion.span layoutId="nav-indicator" className="absolute left-0 top-2 bottom-2 w-[3px] rounded-full bg-primary" />
                 )}
                 <Icon className="h-[18px] w-[18px]" strokeWidth={1.8} />
                 <span className="flex-1">{item.label}</span>
@@ -74,8 +78,8 @@ export function AppShell({ children }) {
 
         <div className="px-3 py-3 border-t border-border">
           <div className="rounded-lg bg-muted/30 border border-border/50 p-3 text-xs text-muted-foreground">
-            <div className="font-semibold text-foreground mb-1 font-display">Paper Trading</div>
-            <div>Start with a virtual $10,000. Test strategies risk-free.</div>
+            <div className="font-semibold text-foreground mb-1 font-display">AI Trading Bots</div>
+            <div>Let Claude or Gemini trade for you on a schedule — fully configurable guardrails.</div>
           </div>
         </div>
       </aside>
@@ -96,6 +100,7 @@ export function AppShell({ children }) {
               <span className="h-2 w-2 rounded-full bg-[hsl(var(--success))] animate-pulse" />
               Live markets
             </div>
+            <NotificationBell />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="h-9 px-2 gap-2" data-testid="user-menu-trigger">
@@ -149,10 +154,95 @@ export function AppShell({ children }) {
           </div>
         </div>
 
-        <main className="flex-1 min-w-0">
-          {children}
-        </main>
+        <main className="flex-1 min-w-0">{children}</main>
       </div>
     </div>
   );
+}
+
+
+function NotificationBell() {
+  const [items, setItems] = useState([]);
+  const [unread, setUnread] = useState(0);
+  const [open, setOpen] = useState(false);
+
+  const load = async () => {
+    try {
+      const { data } = await api.get("/notifications", { params: { limit: 30 } });
+      setItems(data.notifications || []);
+      setUnread(data.unread_count || 0);
+      return data;
+    } catch { /* silent */ }
+  };
+
+  useEffect(() => {
+    let prevUnread = 0;
+    let cancelled = false;
+    const poll = async () => {
+      const data = await load();
+      if (data && data.unread_count > prevUnread && prevUnread > 0) {
+        // Show a toast for the newest triggered notification
+        const latest = (data.notifications || []).find((n) => !n.read);
+        if (latest) toast(latest.title, { description: latest.body });
+      }
+      prevUnread = data?.unread_count ?? prevUnread;
+    };
+    poll();
+    const iv = setInterval(() => { if (!cancelled) poll(); }, 30_000);
+    return () => { cancelled = true; clearInterval(iv); };
+  }, []);
+
+  const markAllRead = async () => {
+    try { await api.post("/notifications/mark-read"); load(); } catch {}
+  };
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button variant="ghost" size="icon" className="relative" data-testid="notifications-bell">
+          <Bell className="h-4 w-4" />
+          {unread > 0 ? (
+            <span className="absolute -top-0.5 -right-0.5 h-4 min-w-4 px-1 rounded-full bg-[hsl(var(--warning))] text-[10px] font-semibold text-black flex items-center justify-center" data-testid="notifications-unread-count">
+              {unread > 99 ? "99+" : unread}
+            </span>
+          ) : null}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-80 p-0" data-testid="notifications-popover">
+        <div className="px-4 py-3 border-b border-border flex items-center justify-between">
+          <div className="font-display font-semibold">Notifications</div>
+          {unread > 0 ? (
+            <button onClick={markAllRead} className="text-xs text-primary hover:underline" data-testid="notifications-mark-read">
+              <Check className="h-3 w-3 inline mr-0.5" /> Mark all read
+            </button>
+          ) : null}
+        </div>
+        {!items.length ? (
+          <div className="p-6 text-center text-sm text-muted-foreground">No notifications yet.</div>
+        ) : (
+          <ScrollArea className="max-h-96">
+            <div className="divide-y divide-border/60" data-testid="notifications-list">
+              {items.map((n) => (
+                <div key={n.id} className={`px-4 py-3 text-sm ${n.read ? "opacity-70" : ""}`}>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className={`text-[10px] ${kindColor(n.kind)}`}>{n.kind}</Badge>
+                    <div className="font-medium truncate flex-1">{n.title}</div>
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-0.5">{n.body}</div>
+                  <div className="text-[10px] text-muted-foreground/70 mt-1">{shortDate(n.created_at)}</div>
+                </div>
+              ))}
+            </div>
+          </ScrollArea>
+        )}
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+function kindColor(kind) {
+  if (kind === "alert") return "text-[hsl(var(--warning))] border-[hsl(var(--warning))]/40";
+  if (kind === "bot_trade") return "text-[hsl(var(--success))] border-[hsl(var(--success))]/40";
+  if (kind === "bot_skip") return "text-muted-foreground";
+  return "text-muted-foreground";
 }

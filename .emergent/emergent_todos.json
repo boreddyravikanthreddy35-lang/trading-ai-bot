@@ -1,42 +1,50 @@
 [
   {
-    "content": "Phase 1: Get LLM integration playbook (Claude Sonnet 4.5 + Gemini 2.5 Pro via Emergent LLM key)",
+    "content": "Phase 3: Backend — Binance testnet signed HTTP client + broker interface + connection test endpoint",
     "status": "completed"
   },
   {
-    "content": "Phase 1: Research CoinGecko + Binance API patterns and best practices",
+    "content": "Phase 3: Backend — AI Chat Analyst service (multi-turn LlmChat with signal context)",
     "status": "completed"
   },
   {
-    "content": "Phase 1: Create test_core.py - fetch market data, compute indicators, get AI signals from both models",
+    "content": "Phase 3: Backend — In-app notifications service + alert-check scheduler (auto-fire alerts)",
     "status": "completed"
   },
   {
-    "content": "Phase 1: Run POC and fix until all user stories pass (data fetch + both LLM signals with valid JSON)",
+    "content": "Phase 3: Backend — Strategy presets CRUD",
     "status": "completed"
   },
   {
-    "content": "Phase 2: Get design guidelines from design_agent",
+    "content": "Phase 3: Backend — AI Auto-Trading bot (scheduler + broker execution) + bots CRUD",
     "status": "completed"
   },
   {
-    "content": "Phase 2: Build backend - services (Market data, Indicators, Signals, Backtest, PaperBroker, Alerts, Auth) + API routes",
+    "content": "Phase 3: Frontend — Notification bell + toast polling in AppShell",
     "status": "completed"
   },
   {
-    "content": "Phase 2: Build frontend - Auth, Dashboard, Coin detail, AI Signals, Backtesting, Paper Trading, Watchlists/Alerts",
+    "content": "Phase 3: Frontend — AI Chat drawer on Signals + Coin pages",
     "status": "completed"
   },
   {
-    "content": "Phase 2: All user stories covered in Development",
+    "content": "Phase 3: Frontend — Strategy presets save/load in Backtest page",
     "status": "completed"
   },
   {
-    "content": "Phase 2: End-to-end testing with testing_agent_v3 covering all user stories",
+    "content": "Phase 3: Frontend — Paper Trading testnet toggle + Settings connection test",
     "status": "completed"
   },
   {
-    "content": "Phase 2: Fix all bugs found in testing",
+    "content": "Phase 3: Frontend — AI Bots page (create/edit/pause, run history)",
     "status": "completed"
+  },
+  {
+    "content": "Phase 3: End-to-end testing of new features with testing_agent_v3",
+    "status": "in_progress"
+  },
+  {
+    "content": "Phase 3: Fix all bugs found in testing",
+    "status": "pending"
   }
 ]

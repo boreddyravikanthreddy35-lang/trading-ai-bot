@@ -20,14 +20,14 @@ client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ.get("DB_NAME", "signalforge")]
 
 # ── App ────────────────────────────────────────────────────────────────────
-app = FastAPI(title="SignalForge — AI Crypto Trading Platform", version="1.0.0")
+app = FastAPI(title="SignalForge — AI Crypto Trading Platform", version="1.1.0")
 
 api_router = APIRouter(prefix="/api")
 
 
 @api_router.get("/")
 async def root():
-    return {"name": "SignalForge API", "status": "ok", "version": "1.0.0"}
+    return {"name": "SignalForge API", "status": "ok", "version": "1.1.0"}
 
 
 @api_router.get("/health")
@@ -43,6 +43,10 @@ from api.paper import router as paper_router  # noqa: E402
 from api.watch import router as watch_router  # noqa: E402
 from api.auth_routes import router as auth_router  # noqa: E402
 from api.settings import router as settings_router  # noqa: E402
+from api.chat import router as chat_router  # noqa: E402
+from api.notifications import router as notif_router  # noqa: E402
+from api.presets import router as presets_router  # noqa: E402
+from api.bots import router as bots_router  # noqa: E402
 
 api_router.include_router(market_router)
 api_router.include_router(ai_router)
@@ -51,6 +55,10 @@ api_router.include_router(paper_router)
 api_router.include_router(watch_router)
 api_router.include_router(auth_router)
 api_router.include_router(settings_router)
+api_router.include_router(chat_router)
+api_router.include_router(notif_router)
+api_router.include_router(presets_router)
+api_router.include_router(bots_router)
 
 app.include_router(api_router)
 
@@ -69,6 +77,23 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+# ── Background scheduler (auto-trading bots + alert checks) ────────────────
+from services import scheduler as sched  # noqa: E402
+
+
+@app.on_event("startup")
+async def start_scheduler():
+    try:
+        await sched.start(db)
+        logger.info("Background scheduler started")
+    except Exception as e:
+        logger.exception("Scheduler start failed: %s", e)
+
+
 @app.on_event("shutdown")
 async def shutdown_db_client():
+    try:
+        sched.shutdown()
+    except Exception:
+        pass
     client.close()

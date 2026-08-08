@@ -116,7 +116,7 @@ export default function SignalsPage() {
             <div className={`grid gap-4 ${currentResult.results?.length > 1 ? "grid-cols-1 xl:grid-cols-2" : "grid-cols-1"}`} data-testid="model-comparison-tabs">
               {currentResult.results.map((r, i) => (
                 <div key={i} data-testid={`model-comparison-${r.model_key}-panel`}>
-                  <SignalCard result={r} symbol={currentResult.symbol} timeframe={currentResult.timeframe} />
+                  <SignalCard result={r} symbol={currentResult.symbol} timeframe={currentResult.timeframe} signalId={currentResult.id} />
                 </div>
               ))}
             </div>

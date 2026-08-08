@@ -245,6 +245,10 @@ class APITester:
             data={"symbol": "BTCUSDT", "timeframe": "1h", "model": "claude"}
         )
         if success:
+            # Store signal_id for chat tests
+            if 'id' in response:
+                self.signal_id = response['id']
+                self.log("📊", f"Stored signal_id for chat tests: {self.signal_id}")
             results = response.get('results', [])
             if results:
                 signal = results[0]
@@ -647,6 +651,294 @@ class APITester:
         )
 
     # ═══════════════════════════════════════════════════════════════════════
+    # PHASE 3: CHAT ANALYST TESTS
+    # ═══════════════════════════════════════════════════════════════════════
+    
+    def test_chat_send_message(self):
+        """Test sending a chat message about a signal"""
+        if not hasattr(self, 'signal_id') or not self.signal_id:
+            self.log("⚠️", "Skipping chat test - no signal_id available")
+            return False, {}
+        
+        success, response = self.run_test(
+            "Chat - Send Message",
+            "POST",
+            f"chat/{self.signal_id}/message",
+            200,
+            data={"signal_id": self.signal_id, "model": "claude", "message": "Why did you pick this action?"}
+        )
+        return success, response
+    
+    def test_chat_get_conversation(self):
+        """Test getting chat conversation"""
+        if not hasattr(self, 'signal_id') or not self.signal_id:
+            self.log("⚠️", "Skipping chat get test - no signal_id available")
+            return False, {}
+        
+        success, response = self.run_test(
+            "Chat - Get Conversation",
+            "GET",
+            f"chat/{self.signal_id}",
+            200
+        )
+        return success, response
+
+    # ═══════════════════════════════════════════════════════════════════════
+    # PHASE 3: NOTIFICATIONS TESTS
+    # ═══════════════════════════════════════════════════════════════════════
+    
+    def test_notifications_list(self):
+        """Test listing notifications"""
+        success, response = self.run_test(
+            "Notifications - List",
+            "GET",
+            "notifications",
+            200
+        )
+        if success and 'notifications' in response:
+            self.log("📊", f"Found {len(response['notifications'])} notifications, {response.get('unread_count', 0)} unread")
+        return success, response
+    
+    def test_notifications_mark_read(self):
+        """Test marking all notifications as read"""
+        success, response = self.run_test(
+            "Notifications - Mark All Read",
+            "POST",
+            "notifications/mark-read",
+            200
+        )
+        return success, response
+
+    # ═══════════════════════════════════════════════════════════════════════
+    # PHASE 3: STRATEGY PRESETS TESTS
+    # ═══════════════════════════════════════════════════════════════════════
+    
+    def test_presets_create(self):
+        """Test creating a strategy preset"""
+        success, response = self.run_test(
+            "Presets - Create",
+            "POST",
+            "presets",
+            200,
+            data={
+                "name": "SMA-fast",
+                "strategy": "sma_crossover",
+                "interval": "1h",
+                "limit": 300,
+                "initial_cash": 10000,
+                "fee_rate": 0.001,
+                "fast": 10,
+                "slow": 30
+            }
+        )
+        if success and 'id' in response:
+            self.preset_id = response['id']
+            self.log("📊", f"Created preset with ID: {self.preset_id}")
+        return success, response
+    
+    def test_presets_list(self):
+        """Test listing presets"""
+        success, response = self.run_test(
+            "Presets - List",
+            "GET",
+            "presets",
+            200
+        )
+        if success and 'presets' in response:
+            self.log("📊", f"Found {len(response['presets'])} presets")
+        return success, response
+    
+    def test_presets_update(self):
+        """Test updating a preset"""
+        if not hasattr(self, 'preset_id') or not self.preset_id:
+            self.log("⚠️", "Skipping preset update - no preset_id available")
+            return False, {}
+        
+        success, response = self.run_test(
+            "Presets - Update",
+            "PATCH",
+            f"presets/{self.preset_id}",
+            200,
+            data={"name": "SMA-fast-updated", "fast": 12}
+        )
+        return success, response
+    
+    def test_presets_delete(self):
+        """Test deleting a preset"""
+        if not hasattr(self, 'preset_id') or not self.preset_id:
+            self.log("⚠️", "Skipping preset delete - no preset_id available")
+            return False, {}
+        
+        success, response = self.run_test(
+            "Presets - Delete",
+            "DELETE",
+            f"presets/{self.preset_id}",
+            200
+        )
+        return success, response
+
+    # ═══════════════════════════════════════════════════════════════════════
+    # PHASE 3: AI BOTS TESTS
+    # ═══════════════════════════════════════════════════════════════════════
+    
+    def test_bots_create(self):
+        """Test creating an AI bot"""
+        success, response = self.run_test(
+            "Bots - Create",
+            "POST",
+            "bots",
+            200,
+            data={
+                "name": "Test bot",
+                "symbol": "BTCUSDT",
+                "timeframe": "1h",
+                "model": "claude",
+                "interval_minutes": 60,
+                "size_usd": 100,
+                "min_confidence": 0.6,
+                "allow_actions": ["BUY", "SELL"],
+                "active": False,
+                "use_testnet": False
+            }
+        )
+        if success and 'id' in response:
+            self.bot_id = response['id']
+            self.log("📊", f"Created bot with ID: {self.bot_id}")
+        return success, response
+    
+    def test_bots_list(self):
+        """Test listing bots"""
+        success, response = self.run_test(
+            "Bots - List",
+            "GET",
+            "bots",
+            200
+        )
+        if success and 'bots' in response:
+            self.log("📊", f"Found {len(response['bots'])} bots")
+        return success, response
+    
+    def test_bots_manual_run(self):
+        """Test manual bot run"""
+        if not hasattr(self, 'bot_id') or not self.bot_id:
+            self.log("⚠️", "Skipping bot run - no bot_id available")
+            return False, {}
+        
+        self.log("⏳", "Running bot (this may take 10-15 seconds for AI call)...")
+        success, response = self.run_test(
+            "Bots - Manual Run",
+            "POST",
+            f"bots/{self.bot_id}/run",
+            200
+        )
+        if success:
+            status = response.get('status', 'unknown')
+            self.log("📊", f"Bot run status: {status}")
+            if status == 'skipped':
+                self.log("📊", f"Skip reason: {response.get('skip_reason', 'N/A')}")
+        return success, response
+    
+    def test_bots_run_history(self):
+        """Test getting bot run history"""
+        if not hasattr(self, 'bot_id') or not self.bot_id:
+            self.log("⚠️", "Skipping bot history - no bot_id available")
+            return False, {}
+        
+        success, response = self.run_test(
+            "Bots - Run History",
+            "GET",
+            f"bots/{self.bot_id}/runs",
+            200
+        )
+        if success and 'runs' in response:
+            self.log("📊", f"Found {len(response['runs'])} bot runs")
+        return success, response
+    
+    def test_bots_update(self):
+        """Test updating a bot (toggle active)"""
+        if not hasattr(self, 'bot_id') or not self.bot_id:
+            self.log("⚠️", "Skipping bot update - no bot_id available")
+            return False, {}
+        
+        success, response = self.run_test(
+            "Bots - Update (toggle active)",
+            "PATCH",
+            f"bots/{self.bot_id}",
+            200,
+            data={"active": True}
+        )
+        return success, response
+    
+    def test_bots_delete(self):
+        """Test deleting a bot"""
+        if not hasattr(self, 'bot_id') or not self.bot_id:
+            self.log("⚠️", "Skipping bot delete - no bot_id available")
+            return False, {}
+        
+        success, response = self.run_test(
+            "Bots - Delete",
+            "DELETE",
+            f"bots/{self.bot_id}",
+            200
+        )
+        return success, response
+
+    # ═══════════════════════════════════════════════════════════════════════
+    # PHASE 3: BINANCE TESTNET SETTINGS TESTS
+    # ═══════════════════════════════════════════════════════════════════════
+    
+    def test_settings_binance_testnet_save(self):
+        """Test saving Binance testnet keys"""
+        success, response = self.run_test(
+            "Settings - Save Binance Testnet Keys",
+            "POST",
+            "settings/exchange/binance-testnet",
+            200,
+            data={
+                "api_key": "dummy_test_key_12345678",
+                "api_secret": "dummy_test_secret_12345678",
+                "enabled": True
+            }
+        )
+        return success, response
+    
+    def test_settings_binance_testnet_test(self):
+        """Test Binance testnet connection (expect geo_restricted)"""
+        self.log("⏳", "Testing testnet connection (expect geo_restricted status)...")
+        success, response = self.run_test(
+            "Settings - Test Binance Testnet Connection",
+            "POST",
+            "settings/exchange/binance-testnet/test",
+            200
+        )
+        if success:
+            status = response.get('status', 'unknown')
+            self.log("📊", f"Testnet status: {status}")
+            if status == 'geo_restricted':
+                self.log("✅", "Geo-restriction detected as expected")
+            elif status == 'error':
+                self.log("📊", f"Error: {response.get('error', 'N/A')}")
+        return success, response
+    
+    def test_paper_order_testnet_flag(self):
+        """Test paper order with testnet flag (expect 503 geo-restricted)"""
+        self.log("⏳", "Testing paper order with testnet flag (expect 503)...")
+        # This should return 503 because testnet is geo-restricted
+        success, response = self.run_test(
+            "Paper - Order with Testnet Flag",
+            "POST",
+            "paper/order",
+            503,  # Expect 503 due to geo-restriction
+            data={
+                "symbol": "BTCUSDT",
+                "side": "BUY",
+                "quote_amount": 50,
+                "use_testnet": True
+            }
+        )
+        return success, response
+
+    # ═══════════════════════════════════════════════════════════════════════
     # MAIN TEST RUNNER
     # ═══════════════════════════════════════════════════════════════════════
 
@@ -716,6 +1008,38 @@ class APITester:
         self.test_settings_binance_save()
         self.test_settings_binance_get()
         self.test_settings_binance_delete()
+        
+        # Phase 3: Chat Analyst
+        self.log("\n📋", "=== PHASE 3: CHAT ANALYST TESTS ===")
+        self.test_chat_send_message()
+        self.test_chat_get_conversation()
+        
+        # Phase 3: Notifications
+        self.log("\n📋", "=== PHASE 3: NOTIFICATIONS TESTS ===")
+        self.test_notifications_list()
+        self.test_notifications_mark_read()
+        
+        # Phase 3: Strategy Presets
+        self.log("\n📋", "=== PHASE 3: STRATEGY PRESETS TESTS ===")
+        self.test_presets_create()
+        self.test_presets_list()
+        self.test_presets_update()
+        self.test_presets_delete()
+        
+        # Phase 3: AI Bots
+        self.log("\n📋", "=== PHASE 3: AI BOTS TESTS ===")
+        self.test_bots_create()
+        self.test_bots_list()
+        self.test_bots_manual_run()
+        self.test_bots_run_history()
+        self.test_bots_update()
+        self.test_bots_delete()
+        
+        # Phase 3: Binance Testnet
+        self.log("\n📋", "=== PHASE 3: BINANCE TESTNET TESTS ===")
+        self.test_settings_binance_testnet_save()
+        self.test_settings_binance_testnet_test()
+        self.test_paper_order_testnet_flag()
         
         # Summary
         self.print_summary()

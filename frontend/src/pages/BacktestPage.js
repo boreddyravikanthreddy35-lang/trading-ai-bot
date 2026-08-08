@@ -1,6 +1,6 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { FlaskConical, Play } from "lucide-react";
+import { FlaskConical, Play, Save, Star, Trash2 } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts";
 import { api } from "@/lib/api";
 import { formatUSD, formatPercent, clsxColor, shortDate } from "@/lib/format";
@@ -14,6 +14,9 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow
 } from "@/components/ui/table";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter
+} from "@/components/ui/dialog";
 import { ErrorState, EmptyState } from "@/components/States";
 
 const SYMBOLS = [
@@ -42,6 +45,56 @@ export default function BacktestPage() {
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
+
+  // Presets
+  const [presets, setPresets] = useState([]);
+  const [saveOpen, setSaveOpen] = useState(false);
+  const [presetName, setPresetName] = useState("");
+
+  const loadPresets = async () => {
+    try {
+      const { data } = await api.get("/presets");
+      setPresets(data.presets || []);
+    } catch { /* silent */ }
+  };
+  useEffect(() => { loadPresets(); }, []);
+
+  const applyPreset = (p) => {
+    setSymbol(SYMBOLS.includes(p.symbol) ? p.symbol : symbol); // symbol not stored in preset for now, keep current
+    setStrategy(p.strategy);
+    setInterval(p.interval);
+    setLimit(p.limit);
+    setInitialCash(p.initial_cash);
+    if (p.strategy === "sma_crossover") { setFast(p.fast || 20); setSlow(p.slow || 50); }
+    if (p.strategy === "rsi") { setRsiPeriod(p.rsi_period || 14); setOversold(p.oversold || 30); setOverbought(p.overbought || 70); }
+    toast.success(`Loaded preset: ${p.name}`);
+  };
+
+  const savePreset = async () => {
+    if (!presetName.trim()) return toast.error("Name required");
+    try {
+      const body = {
+        name: presetName.trim(), strategy, interval, limit: Number(limit),
+        initial_cash: Number(initialCash), fee_rate: 0.001,
+      };
+      if (strategy === "sma_crossover") { body.fast = Number(fast); body.slow = Number(slow); }
+      if (strategy === "rsi") { body.rsi_period = Number(rsiPeriod); body.oversold = Number(oversold); body.overbought = Number(overbought); }
+      await api.post("/presets", body);
+      toast.success("Preset saved");
+      setSaveOpen(false); setPresetName("");
+      loadPresets();
+    } catch (e) {
+      toast.error(e?.response?.data?.detail || "Save failed");
+    }
+  };
+
+  const deletePreset = async (id) => {
+    if (!window.confirm("Delete this preset?")) return;
+    try {
+      await api.delete(`/presets/${id}`);
+      loadPresets();
+    } catch { toast.error("Delete failed"); }
+  };
 
   const run = async () => {
     if (busy) return;
@@ -150,6 +203,44 @@ export default function BacktestPage() {
             <Button className="w-full mt-4" onClick={run} disabled={busy} data-testid="backtest-run-button">
               {busy ? <><span className="h-4 w-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin mr-2" /> Running…</> : <><Play className="h-4 w-4 mr-2" /> Run backtest</>}
             </Button>
+          </div>
+
+          {/* Strategy Presets */}
+          <div className="rounded-xl border border-border bg-card p-4" data-testid="strategy-presets-panel">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <Star className="h-4 w-4 text-primary" />
+                <div className="font-display font-semibold">Strategy Presets</div>
+              </div>
+              <Dialog open={saveOpen} onOpenChange={setSaveOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="sm" data-testid="preset-save-btn"><Save className="h-3.5 w-3.5 mr-1.5" /> Save current</Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader><DialogTitle>Save preset</DialogTitle></DialogHeader>
+                  <div>
+                    <Label>Name</Label>
+                    <Input value={presetName} onChange={(e) => setPresetName(e.target.value)} placeholder="e.g. Fast SMA on 1h" className="mt-1" data-testid="preset-name-input" />
+                  </div>
+                  <DialogFooter><Button onClick={savePreset} data-testid="preset-save-submit">Save</Button></DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </div>
+            {presets.length === 0 ? (
+              <div className="text-xs text-muted-foreground py-2">No saved presets yet. Configure a backtest and hit "Save current".</div>
+            ) : (
+              <div className="space-y-1.5" data-testid="preset-list">
+                {presets.map((p) => (
+                  <div key={p.id} className="flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-muted/40">
+                    <button onClick={() => applyPreset(p)} className="flex-1 text-left" data-testid={`preset-apply-${p.id}`}>
+                      <div className="text-sm font-medium">{p.name}</div>
+                      <div className="text-[11px] text-muted-foreground uppercase">{p.strategy} · {p.interval} · ${Number(p.initial_cash).toLocaleString()}</div>
+                    </button>
+                    <Button variant="ghost" size="icon" onClick={() => deletePreset(p.id)} data-testid={`preset-delete-${p.id}`}><Trash2 className="h-3.5 w-3.5 text-muted-foreground" /></Button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </section>
 

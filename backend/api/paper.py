@@ -25,6 +25,7 @@ class PlaceOrderRequest(BaseModel):
     side: str = Field(..., description="BUY | SELL")
     quantity: Optional[float] = None
     quote_amount: Optional[float] = None  # USD amount to spend
+    use_testnet: bool = Field(False, description="If true and testnet is enabled, route via Binance testnet")
 
 
 async def _ensure_portfolio(user_id: str) -> Dict[str, Any]:
@@ -98,6 +99,43 @@ async def place_order(req: PlaceOrderRequest, user: Dict[str, Any] = Depends(cur
     if not req.quantity and not req.quote_amount:
         raise HTTPException(status_code=400, detail="Provide quantity or quote_amount")
 
+    # ─── Testnet route (best-effort; falls back to paper on failure) ──────
+    if req.use_testnet:
+        from services.binance_client import BinanceTestnetClient, BinanceError, GeoRestrictedError
+        creds = await _db().exchange_settings.find_one(
+            {"user_id": user["id"], "exchange": "binance_testnet"}, {"_id": 0}
+        )
+        if not creds or not creds.get("enabled"):
+            raise HTTPException(status_code=400, detail="Enable Binance testnet in Settings first")
+        client = BinanceTestnetClient(creds["api_key"], creds["api_secret"])
+        try:
+            order = await client.market_order(
+                req.symbol, side,
+                quantity=req.quantity, quote_amount=req.quote_amount,
+            )
+            # Log this as a testnet trade too, so history shows it
+            trade = {
+                "id": str(uuid.uuid4()),
+                "user_id": user["id"],
+                "symbol": req.symbol,
+                "side": side,
+                "quantity": float(order.get("executedQty", 0) or 0),
+                "price": float((order.get("fills") or [{}])[0].get("price", 0) or 0),
+                "fee": 0.0,
+                "realized_pnl": 0.0,
+                "cash_after": None,
+                "created_at": datetime.now(tz=timezone.utc).isoformat(),
+                "source": "binance_testnet",
+                "testnet_order": order,
+            }
+            await _db().trades.insert_one(dict(trade))
+            return trade
+        except GeoRestrictedError as e:
+            raise HTTPException(status_code=503, detail=f"Testnet unavailable from this region: {e}")
+        except BinanceError as e:
+            raise HTTPException(status_code=502, detail=f"Testnet error: {e}")
+
+    # ─── Paper broker (default) ───────────────────────────────────────────
     p = await _ensure_portfolio(user["id"])
     price = await _current_price(req.symbol)
 
@@ -163,6 +201,7 @@ async def place_order(req: PlaceOrderRequest, user: Dict[str, Any] = Depends(cur
         "realized_pnl": realized,
         "cash_after": new_cash,
         "created_at": datetime.now(tz=timezone.utc).isoformat(),
+        "source": "paper",
     }
     await _db().trades.insert_one(dict(trade))
     return trade
