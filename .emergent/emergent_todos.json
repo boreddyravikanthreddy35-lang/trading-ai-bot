@@ -17,23 +17,23 @@
   },
   {
     "content": "Phase 2: Get design guidelines from design_agent",
-    "status": "in_progress"
+    "status": "completed"
   },
   {
     "content": "Phase 2: Build backend - services (Market data, Indicators, Signals, Backtest, PaperBroker, Alerts, Auth) + API routes",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "content": "Phase 2: Build frontend - Auth, Dashboard, Coin detail, AI Signals, Backtesting, Paper Trading, Watchlists/Alerts",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "content": "Phase 2: All user stories covered in Development",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "content": "Phase 2: End-to-end testing with testing_agent_v3 covering all user stories",
-    "status": "pending"
+    "status": "in_progress"
   },
   {
     "content": "Phase 2: Fix all bugs found in testing",
