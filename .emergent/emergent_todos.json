@@ -41,10 +41,10 @@
   },
   {
     "content": "Phase 3: End-to-end testing of new features with testing_agent_v3",
-    "status": "in_progress"
+    "status": "completed"
   },
   {
     "content": "Phase 3: Fix all bugs found in testing",
-    "status": "pending"
+    "status": "completed"
   }
 ]
