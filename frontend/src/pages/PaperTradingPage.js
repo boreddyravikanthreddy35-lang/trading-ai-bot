@@ -106,13 +106,25 @@ export default function PaperTradingPage() {
               <Wallet className="h-4 w-4 text-primary" />
               <div className="font-display font-semibold">Place order</div>
             </div>
-            <Tabs value={side} onValueChange={setSide} data-testid="order-ticket-side-tabs">
-              <TabsList className="grid grid-cols-2">
-                <TabsTrigger value="BUY" data-testid="order-tab-buy" className="data-[state=active]:bg-[hsl(var(--up))]/15 data-[state=active]:text-[hsl(var(--up))]">Buy</TabsTrigger>
-                <TabsTrigger value="SELL" data-testid="order-tab-sell" className="data-[state=active]:bg-[hsl(var(--down))]/15 data-[state=active]:text-[hsl(var(--down))]">Sell</TabsTrigger>
-              </TabsList>
-            </Tabs>
-            <div className="mt-3 space-y-3">
+            <div data-testid="order-ticket-side-tabs" className="grid grid-cols-2 rounded-lg bg-muted/40 p-1 mb-3">
+              <button
+                type="button"
+                data-testid="order-tab-buy"
+                onClick={() => setSide("BUY")}
+                className={`h-9 rounded-md text-sm font-medium transition-colors ${
+                  side === "BUY" ? "bg-[hsl(var(--up))]/15 text-[hsl(var(--up))]" : "text-muted-foreground hover:text-foreground"
+                }`}
+              >Buy</button>
+              <button
+                type="button"
+                data-testid="order-tab-sell"
+                onClick={() => setSide("SELL")}
+                className={`h-9 rounded-md text-sm font-medium transition-colors ${
+                  side === "SELL" ? "bg-[hsl(var(--down))]/15 text-[hsl(var(--down))]" : "text-muted-foreground hover:text-foreground"
+                }`}
+              >Sell</button>
+            </div>
+            <div className="space-y-3">
               <div>
                 <Label>Symbol</Label>
                 <Select value={symbol} onValueChange={setSymbol}>
@@ -137,7 +149,7 @@ export default function PaperTradingPage() {
                   className="mt-1" placeholder={amountMode === "quote" ? "USD amount" : "Coin qty"}
                 />
               </div>
-              <Button className={`w-full ${side === "BUY" ? "bg-[hsl(var(--up))] hover:bg-[hsl(var(--up))]/90 text-white" : "bg-[hsl(var(--down))] hover:bg-[hsl(var(--down))]/90 text-white"}`}
+              <Button className={`w-full relative z-10 ${side === "BUY" ? "bg-[hsl(var(--up))] hover:bg-[hsl(var(--up))]/90 text-white" : "bg-[hsl(var(--down))] hover:bg-[hsl(var(--down))]/90 text-white"}`}
                 onClick={placeOrder} disabled={busy} data-testid="order-ticket-submit-button">
                 {busy ? <><span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" /> Placing…</> : `${side} ${symbol}`}
               </Button>

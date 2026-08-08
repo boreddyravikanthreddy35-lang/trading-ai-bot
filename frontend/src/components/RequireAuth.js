@@ -6,6 +6,9 @@ export function RequireAuth({ children }) {
   const { user, loading } = useAuth();
   const location = useLocation();
 
+  // Extra defensive: also check localStorage for token to guard against stale states
+  const hasToken = typeof window !== "undefined" && !!localStorage.getItem("sf_token");
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -13,7 +16,7 @@ export function RequireAuth({ children }) {
       </div>
     );
   }
-  if (!user) {
+  if (!user || !hasToken) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
   return children;

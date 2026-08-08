@@ -47,6 +47,8 @@ export function AuthProvider({ children }) {
   const signOut = useCallback(() => {
     localStorage.removeItem("sf_token");
     setUser(null);
+    // Force navigation to landing to guarantee redirect from any protected route
+    window.location.replace("/landing");
   }, []);
 
   return (
