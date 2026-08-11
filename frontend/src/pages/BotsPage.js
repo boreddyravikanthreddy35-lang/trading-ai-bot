@@ -22,6 +22,8 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow
 } from "@/components/ui/table";
 import { EmptyState, ErrorState } from "@/components/States";
+import { UpgradeBanner } from "@/components/UpgradeBanner";
+import { useSubscription } from "@/context/SubscriptionContext";
 
 const SYMBOLS = [
   "BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT", "XRPUSDT", "ADAUSDT",
@@ -33,6 +35,10 @@ export default function BotsPage() {
   const [bots, setBots] = useState(null);
   const [error, setError] = useState(null);
   const [selected, setSelected] = useState(null);
+  const { subscription } = useSubscription();
+  const planId = subscription?.plan_id || "free";
+  const maxBots = subscription?.plan?.limits?.max_bots ?? 0;
+  const showUpgrade = planId === "free" || (maxBots !== -1 && (bots?.length ?? 0) >= maxBots);
 
   const load = async () => {
     setError(null);
@@ -71,6 +77,19 @@ export default function BotsPage() {
       </div>
 
       {error ? <ErrorState message={error} onRetry={load} /> : null}
+
+      {showUpgrade ? (
+        <UpgradeBanner
+          title={planId === "free" ? "AI Bots need a Pro plan" : "You've hit your bot limit"}
+          body={
+            planId === "free"
+              ? "Free plan can't run any bots. Upgrade to Pro for 3 bots or Elite for unlimited."
+              : `Your ${subscription?.plan?.name} plan allows ${maxBots} bots. Upgrade to Elite for unlimited.`
+          }
+          requiredPlan={planId === "free" ? "Pro" : "Elite"}
+          testId="bots-upgrade-banner"
+        />
+      ) : null}
 
       {bots === null ? (
         <div className="text-sm text-muted-foreground">Loading…</div>

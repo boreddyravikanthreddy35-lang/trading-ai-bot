@@ -18,6 +18,8 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow
 } from "@/components/ui/table";
 import { EmptyState, ErrorState } from "@/components/States";
+import { UpgradeBanner } from "@/components/UpgradeBanner";
+import { useSubscription } from "@/context/SubscriptionContext";
 
 const SYMBOLS = [
   "BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT", "XRPUSDT", "ADAUSDT",
@@ -36,6 +38,8 @@ export default function PaperTradingPage() {
   const [useTestnet, setUseTestnet] = useState(false);
   const [testnetStatus, setTestnetStatus] = useState(null);
   const [busy, setBusy] = useState(false);
+  const { subscription } = useSubscription();
+  const testnetAllowed = !!subscription?.plan?.limits?.testnet;
 
   const load = async () => {
     setError(null);
@@ -160,18 +164,25 @@ export default function PaperTradingPage() {
                 <div>
                   <div className="text-xs font-medium">Route via Binance testnet</div>
                   <div className="text-[11px] text-muted-foreground">
-                    {testnetStatus?.enabled ? "Keys enabled" : (testnetStatus?.configured ? "Keys configured — enable in Settings" : "Add keys in Settings")}
+                    {!testnetAllowed
+                      ? "Elite plan only"
+                      : (testnetStatus?.enabled ? "Keys enabled" : (testnetStatus?.configured ? "Keys configured — enable in Settings" : "Add keys in Settings"))}
                   </div>
                 </div>
                 <Switch
                   checked={useTestnet}
                   onCheckedChange={(v) => {
+                    if (v && !testnetAllowed) {
+                      toast.error("Testnet execution is an Elite plan feature");
+                      return;
+                    }
                     if (v && !testnetStatus?.enabled) {
                       toast.error("Enable Binance testnet in Settings first");
                       return;
                     }
                     setUseTestnet(v);
                   }}
+                  disabled={!testnetAllowed}
                   data-testid="paper-testnet-switch"
                 />
               </div>

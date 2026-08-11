@@ -47,6 +47,7 @@ from api.chat import router as chat_router  # noqa: E402
 from api.notifications import router as notif_router  # noqa: E402
 from api.presets import router as presets_router  # noqa: E402
 from api.bots import router as bots_router  # noqa: E402
+from api.payments import router as payments_router, webhook_router as stripe_webhook_router  # noqa: E402
 
 api_router.include_router(market_router)
 api_router.include_router(ai_router)
@@ -59,6 +60,8 @@ api_router.include_router(chat_router)
 api_router.include_router(notif_router)
 api_router.include_router(presets_router)
 api_router.include_router(bots_router)
+api_router.include_router(payments_router)
+api_router.include_router(stripe_webhook_router)  # /webhook/stripe → /api/webhook/stripe
 
 app.include_router(api_router)
 

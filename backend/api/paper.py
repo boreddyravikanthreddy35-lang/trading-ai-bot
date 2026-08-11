@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field
 
 from services import market_data as md
 from services.auth import current_user
+from services.entitlements import enforce_testnet
 
 router = APIRouter(prefix="/paper", tags=["paper"])
 
@@ -101,6 +102,8 @@ async def place_order(req: PlaceOrderRequest, user: Dict[str, Any] = Depends(cur
 
     # ─── Testnet route (best-effort; falls back to paper on failure) ──────
     if req.use_testnet:
+        # Elite-plan gate
+        await enforce_testnet(_db(), user["id"])
         from services.binance_client import BinanceTestnetClient, BinanceError, GeoRestrictedError
         creds = await _db().exchange_settings.find_one(
             {"user_id": user["id"], "exchange": "binance_testnet"}, {"_id": 0}

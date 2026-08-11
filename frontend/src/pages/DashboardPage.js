@@ -18,6 +18,8 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from "@/components/ui/select";
 import { SignalCard, SignalCardSkeleton } from "@/components/SignalCard";
+import { UpgradeBanner } from "@/components/UpgradeBanner";
+import { useSubscription } from "@/context/SubscriptionContext";
 
 const QUICK_SYMBOLS = [
   { symbol: "BTCUSDT", label: "Bitcoin" },
@@ -29,6 +31,11 @@ export default function DashboardPage() {
   const nav = useNavigate();
   const [coins, setCoins] = useState(null);
   const [error, setError] = useState(null);
+  const { subscription, refresh: refreshSub } = useSubscription();
+  const signalsPerDay = subscription?.plan?.limits?.signals_per_day ?? 5;
+  const signalsUsed = subscription?.usage?.signals_today ?? 0;
+  const signalsRemaining = signalsPerDay === -1 ? "unlimited" : Math.max(0, signalsPerDay - signalsUsed);
+  const overQuota = signalsPerDay !== -1 && signalsUsed >= signalsPerDay;
 
   const [quickSymbol, setQuickSymbol] = useState("BTCUSDT");
   const [quickModel, setQuickModel] = useState("claude");
@@ -66,8 +73,15 @@ export default function DashboardPage() {
       });
       setQuickResult(data);
       toast.success("AI signal generated");
+      refreshSub();
     } catch (e) {
-      toast.error(e?.response?.data?.detail || "Signal failed");
+      const status = e?.response?.status;
+      const detail = e?.response?.data?.detail;
+      if (status === 402) {
+        toast.error(detail || "Daily signal limit reached — upgrade to unlock more");
+      } else {
+        toast.error(detail || "Signal failed");
+      }
     } finally {
       setSignalBusy(false);
     }
@@ -182,10 +196,23 @@ export default function DashboardPage() {
 
         {/* Right: signal generator + movers */}
         <section className="lg:col-span-4 space-y-4 md:space-y-6">
+          {overQuota ? (
+            <UpgradeBanner
+              title="Daily signal limit reached"
+              body={`You've used ${signalsUsed}/${signalsPerDay} signals today. Upgrade to keep going.`}
+              requiredPlan="Pro"
+              testId="signal-quota-banner"
+            />
+          ) : null}
           <div className="rounded-xl border border-border bg-card p-4" data-testid="quick-signal-card">
-            <div className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-primary" />
-              <div className="font-display font-semibold">Generate an AI signal</div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-primary" />
+                <div className="font-display font-semibold">Generate an AI signal</div>
+              </div>
+              <div className="text-[11px] text-muted-foreground" data-testid="dashboard-signal-quota">
+                {signalsPerDay === -1 ? "Unlimited" : `${signalsUsed}/${signalsPerDay} today`}
+              </div>
             </div>
             <div className="mt-3 grid grid-cols-2 gap-2">
               <div>

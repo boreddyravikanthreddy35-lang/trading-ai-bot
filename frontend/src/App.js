@@ -3,6 +3,7 @@ import "@/App.css";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
+import { SubscriptionProvider } from "@/context/SubscriptionContext";
 import { RequireAuth } from "@/components/RequireAuth";
 import { AppShell } from "@/components/AppShell";
 
@@ -19,6 +20,9 @@ import WatchlistsPage from "@/pages/WatchlistsPage";
 import AlertsPage from "@/pages/AlertsPage";
 import SettingsPage from "@/pages/SettingsPage";
 import BotsPage from "@/pages/BotsPage";
+import PricingPage from "@/pages/PricingPage";
+import BillingSuccessPage from "@/pages/BillingSuccessPage";
+import BillingCancelPage from "@/pages/BillingCancelPage";
 
 function Shell({ children }) {
   return (
@@ -42,28 +46,33 @@ function App() {
 
   return (
     <AuthProvider>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<RootRedirect />} />
-          <Route path="/landing" element={<LandingPage />} />
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/signup" element={<SignupPage />} />
-          <Route path="/oauth/callback" element={<OAuthCallback />} />
+      <SubscriptionProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<RootRedirect />} />
+            <Route path="/landing" element={<LandingPage />} />
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/signup" element={<SignupPage />} />
+            <Route path="/oauth/callback" element={<OAuthCallback />} />
+            <Route path="/pricing" element={<PricingPage />} />
+            <Route path="/billing/success" element={<BillingSuccessPage />} />
+            <Route path="/billing/cancel" element={<BillingCancelPage />} />
 
-          <Route path="/dashboard" element={<Shell><DashboardPage /></Shell>} />
-          <Route path="/coin/:symbol" element={<Shell><CoinPage /></Shell>} />
-          <Route path="/signals" element={<Shell><SignalsPage /></Shell>} />
-          <Route path="/bots" element={<Shell><BotsPage /></Shell>} />
-          <Route path="/backtest" element={<Shell><BacktestPage /></Shell>} />
-          <Route path="/paper-trading" element={<Shell><PaperTradingPage /></Shell>} />
-          <Route path="/watchlists" element={<Shell><WatchlistsPage /></Shell>} />
-          <Route path="/alerts" element={<Shell><AlertsPage /></Shell>} />
-          <Route path="/settings" element={<Shell><SettingsPage /></Shell>} />
+            <Route path="/dashboard" element={<Shell><DashboardPage /></Shell>} />
+            <Route path="/coin/:symbol" element={<Shell><CoinPage /></Shell>} />
+            <Route path="/signals" element={<Shell><SignalsPage /></Shell>} />
+            <Route path="/bots" element={<Shell><BotsPage /></Shell>} />
+            <Route path="/backtest" element={<Shell><BacktestPage /></Shell>} />
+            <Route path="/paper-trading" element={<Shell><PaperTradingPage /></Shell>} />
+            <Route path="/watchlists" element={<Shell><WatchlistsPage /></Shell>} />
+            <Route path="/alerts" element={<Shell><AlertsPage /></Shell>} />
+            <Route path="/settings" element={<Shell><SettingsPage /></Shell>} />
 
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </BrowserRouter>
-      <Toaster richColors position="top-right" theme="dark" />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </BrowserRouter>
+        <Toaster richColors position="top-right" theme="dark" />
+      </SubscriptionProvider>
     </AuthProvider>
   );
 }

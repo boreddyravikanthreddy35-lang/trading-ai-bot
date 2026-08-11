@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field
 from services import market_data as md
 from services import ai_signals as ai
 from services.auth import current_user, optional_user
+from services.entitlements import enforce_signal_quota
 from services.indicators import compute_indicators
 
 router = APIRouter(prefix="/ai", tags=["ai"])
@@ -30,6 +31,10 @@ def _db():
 async def generate_signal(req: SignalRequest, user: Optional[Dict[str, Any]] = Depends(optional_user)):
     if req.model not in {"claude", "gemini", "both"}:
         raise HTTPException(status_code=400, detail="model must be one of: claude | gemini | both")
+
+    # Enforce daily quota for signed-in users (anonymous is fine — landing demo)
+    if user:
+        await enforce_signal_quota(_db(), user["id"])
 
     # 1) Fetch klines + indicators
     try:

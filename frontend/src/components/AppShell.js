@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from "react";
-import { NavLink, useLocation } from "react-router-dom";
+import { NavLink, useLocation, Link } from "react-router-dom";
 import {
   LayoutDashboard, Sparkles, FlaskConical, Wallet, Star, Bell, Settings as SettingsIcon,
-  TrendingUp, LogOut, ChevronRight, Bot as BotIcon, Check
+  TrendingUp, LogOut, ChevronRight, Bot as BotIcon, Check, CreditCard, Crown, Zap
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
+import { useSubscription } from "@/context/SubscriptionContext";
 import { api } from "@/lib/api";
 import { shortDate } from "@/lib/format";
 import { Button } from "@/components/ui/button";
@@ -29,12 +30,23 @@ const NAV_ITEMS = [
   { to: "/paper-trading", label: "Paper Trading", icon: Wallet, testId: "nav-paper-trading-link" },
   { to: "/watchlists", label: "Watchlists", icon: Star, testId: "nav-watchlists-link" },
   { to: "/alerts", label: "Alerts", icon: Bell, testId: "nav-alerts-link" },
+  { to: "/pricing", label: "Pricing", icon: CreditCard, testId: "nav-pricing-link" },
   { to: "/settings", label: "Settings", icon: SettingsIcon, testId: "nav-settings-link" },
 ];
 
+const planBadgeCfg = {
+  free:  { icon: null,   cls: "text-muted-foreground border-border" },
+  pro:   { icon: Zap,    cls: "text-primary border-primary/40 bg-primary/8" },
+  elite: { icon: Crown,  cls: "text-[hsl(var(--warning))] border-[hsl(var(--warning))]/40 bg-[hsl(var(--warning))]/8" },
+};
+
 export function AppShell({ children }) {
   const { user, signOut } = useAuth();
+  const { subscription } = useSubscription();
   const location = useLocation();
+  const planId = subscription?.plan_id || "free";
+  const planCfg = planBadgeCfg[planId] || planBadgeCfg.free;
+  const PlanIcon = planCfg.icon;
 
   return (
     <div className="min-h-screen bg-background text-foreground flex">
@@ -100,6 +112,12 @@ export function AppShell({ children }) {
               <span className="h-2 w-2 rounded-full bg-[hsl(var(--success))] animate-pulse" />
               Live markets
             </div>
+            <Link to="/pricing" data-testid="plan-badge">
+              <Badge variant="outline" className={`gap-1 font-medium hover:opacity-90 ${planCfg.cls}`}>
+                {PlanIcon ? <PlanIcon className="h-3 w-3" /> : null}
+                {(subscription?.plan?.name) || "Free"}
+              </Badge>
+            </Link>
             <NotificationBell />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -121,6 +139,9 @@ export function AppShell({ children }) {
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => (window.location.href = "/pricing")} data-testid="user-menu-pricing">
+                  <CreditCard className="h-4 w-4 mr-2" /> Pricing & plans
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => (window.location.href = "/settings")} data-testid="user-menu-settings">
                   <SettingsIcon className="h-4 w-4 mr-2" /> Settings
                 </DropdownMenuItem>

@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field
 from services.auth import current_user
 from services import scheduler as sched
 from services.bot_runner import run_bot_once
+from services.entitlements import enforce_bot_quota, enforce_testnet
 
 router = APIRouter(prefix="/bots", tags=["bots"])
 
@@ -60,6 +61,10 @@ async def list_bots(user: Dict[str, Any] = Depends(current_user)):
 async def create_bot(req: BotCreate, user: Dict[str, Any] = Depends(current_user)):
     if req.model not in {"claude", "gemini"}:
         raise HTTPException(status_code=400, detail="model must be 'claude' or 'gemini'")
+    # Entitlements
+    await enforce_bot_quota(_db(), user["id"])
+    if req.use_testnet:
+        await enforce_testnet(_db(), user["id"])
     doc = {
         "id": str(uuid.uuid4()),
         "user_id": user["id"],
@@ -80,6 +85,8 @@ async def update_bot(bot_id: str, req: BotUpdate, user: Dict[str, Any] = Depends
         raise HTTPException(status_code=400, detail="No fields to update")
     if "model" in updates and updates["model"] not in {"claude", "gemini"}:
         raise HTTPException(status_code=400, detail="model must be 'claude' or 'gemini'")
+    if updates.get("use_testnet") is True:
+        await enforce_testnet(_db(), user["id"])
     updates["updated_at"] = datetime.now(tz=timezone.utc).isoformat()
     r = await _db().bots.update_one({"id": bot_id, "user_id": user["id"]}, {"$set": updates})
     if r.matched_count == 0:
