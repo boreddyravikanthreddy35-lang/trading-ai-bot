@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
+import { getErrorMessage } from "@/lib/api";
+
 const GOOGLE_CLIENT_ID = "152641593792-lk9n6hsi6d4k7uskr843h79cm09v9pdj.apps.googleusercontent.com";
 
 export default function LoginPage() {
@@ -28,7 +30,7 @@ export default function LoginPage() {
       const dest = loc.state?.from?.pathname || "/dashboard";
       nav(dest, { replace: true });
     } catch (e) {
-      toast.error(e?.response?.data?.detail || "Demo sign-in failed");
+      toast.error(getErrorMessage(e, "Demo sign-in failed — please verify backend is awake"));
     } finally {
       setBusy(false);
     }
@@ -86,7 +88,7 @@ export default function LoginPage() {
       const dest = loc.state?.from?.pathname || "/dashboard";
       nav(dest, { replace: true });
     } catch (e) {
-      toast.error(e?.response?.data?.detail || "Invalid credentials");
+      toast.error(getErrorMessage(e, "Invalid credentials or backend unreachable"));
     } finally {
       setBusy(false);
     }

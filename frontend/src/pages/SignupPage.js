@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
+import { getErrorMessage } from "@/lib/api";
+
 const GOOGLE_CLIENT_ID = "152641593792-lk9n6hsi6d4k7uskr843h79cm09v9pdj.apps.googleusercontent.com";
 
 export default function SignupPage() {
@@ -27,7 +29,7 @@ export default function SignupPage() {
       toast.success("Logged in as Demo Trader!");
       nav("/dashboard", { replace: true });
     } catch (e) {
-      toast.error(e?.response?.data?.detail || "Demo sign-in failed");
+      toast.error(getErrorMessage(e, "Backend connection failed. Please ensure the backend is active."));
     } finally {
       setBusy(false);
     }
@@ -44,7 +46,7 @@ export default function SignupPage() {
       toast.success("Welcome to SignalForge!");
       nav("/dashboard", { replace: true });
     } catch (e) {
-      toast.error(e?.response?.data?.detail || "Google sign-in failed");
+      toast.error(getErrorMessage(e, "Google sign-in failed"));
     } finally {
       setBusy(false);
     }
@@ -86,7 +88,7 @@ export default function SignupPage() {
       toast.success("Welcome to SignalForge");
       nav("/dashboard", { replace: true });
     } catch (e) {
-      toast.error(e?.response?.data?.detail || "Signup failed");
+      toast.error(getErrorMessage(e, "Signup failed — check your connection to backend"));
     } finally {
       setBusy(false);
     }
