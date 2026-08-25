@@ -47,6 +47,17 @@ else:
 # ── App ────────────────────────────────────────────────────────────────────
 app = FastAPI(title="SignalForge — AI Crypto Trading Platform", version="1.1.0")
 
+@app.get("/")
+async def app_root():
+    return {
+        "name": "SignalForge — AI Crypto Trading Platform API",
+        "status": "online",
+        "version": "1.1.0",
+        "docs_url": "/docs",
+        "api_health": "/api/health"
+    }
+
+
 api_router = APIRouter(prefix="/api")
 
 
