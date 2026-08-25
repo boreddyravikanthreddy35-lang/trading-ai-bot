@@ -14,6 +14,7 @@ import OAuthCallback from "@/pages/OAuthCallback";
 import DashboardPage from "@/pages/DashboardPage";
 import CoinPage from "@/pages/CoinPage";
 import SignalsPage from "@/pages/SignalsPage";
+import TradeIntelligencePage from "@/pages/TradeIntelligencePage";
 import BacktestPage from "@/pages/BacktestPage";
 import PaperTradingPage from "@/pages/PaperTradingPage";
 import WatchlistsPage from "@/pages/WatchlistsPage";
@@ -23,6 +24,9 @@ import BotsPage from "@/pages/BotsPage";
 import PricingPage from "@/pages/PricingPage";
 import BillingSuccessPage from "@/pages/BillingSuccessPage";
 import BillingCancelPage from "@/pages/BillingCancelPage";
+
+import AutoAITraderPage from "@/pages/AutoAITraderPage";
+import WalletPage from "@/pages/WalletPage";
 
 function Shell({ children }) {
   return (
@@ -61,6 +65,9 @@ function App() {
             <Route path="/dashboard" element={<Shell><DashboardPage /></Shell>} />
             <Route path="/coin/:symbol" element={<Shell><CoinPage /></Shell>} />
             <Route path="/signals" element={<Shell><SignalsPage /></Shell>} />
+            <Route path="/trade-intelligence" element={<Shell><TradeIntelligencePage /></Shell>} />
+            <Route path="/auto-ai-trader" element={<Shell><AutoAITraderPage /></Shell>} />
+            <Route path="/wallet" element={<Shell><WalletPage /></Shell>} />
             <Route path="/bots" element={<Shell><BotsPage /></Shell>} />
             <Route path="/backtest" element={<Shell><BacktestPage /></Shell>} />
             <Route path="/paper-trading" element={<Shell><PaperTradingPage /></Shell>} />

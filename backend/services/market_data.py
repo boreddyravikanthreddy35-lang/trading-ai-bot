@@ -73,7 +73,7 @@ def to_kucoin_pair(unified: str) -> str:
 
 # ─── HTTP with retries + 429 backoff ───────────────────────────────────────
 
-async def _get_json(url: str, params: Dict[str, Any], attempts: int = 3, timeout: float = 20.0) -> Any:
+async def _get_json(url: str, params: Dict[str, Any], attempts: int = 2, timeout: float = 6.0) -> Any:
     async with httpx.AsyncClient(timeout=timeout, headers=HTTP_HEADERS) as client:
         last_exc: Optional[Exception] = None
         for i in range(attempts):
@@ -81,13 +81,13 @@ async def _get_json(url: str, params: Dict[str, Any], attempts: int = 3, timeout
                 r = await client.get(url, params=params)
                 if r.status_code == 429:
                     retry_after = float(r.headers.get("Retry-After", 2 ** (i + 1)))
-                    await asyncio.sleep(min(retry_after, 12))
+                    await asyncio.sleep(min(retry_after, 4))
                     continue
                 r.raise_for_status()
                 return r.json()
             except Exception as e:
                 last_exc = e
-                await asyncio.sleep(1.0 * (i + 1))
+                await asyncio.sleep(0.5 * (i + 1))
         raise last_exc if last_exc else RuntimeError(f"GET {url} failed")
 
 
@@ -157,7 +157,10 @@ async def coingecko_coin(coin_id: str) -> Dict[str, Any]:
 
 async def binance_ticker_24hr(symbols: List[str]) -> List[Dict[str, Any]]:
     url = f"{BINANCE_BASE}/ticker/24hr"
-    params = {"symbols": json.dumps(symbols)}
+    if len(symbols) == 1:
+        params = {"symbol": symbols[0]}
+    else:
+        params = {"symbols": json.dumps(symbols, separators=(',', ':'))}
     data = await _get_json(url, params, attempts=2)
     if isinstance(data, dict):
         return [data]

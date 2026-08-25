@@ -5,7 +5,7 @@ import {
   RefreshCw, Settings2, TrendingUp, TrendingDown, Minus, ShieldAlert, X
 } from "lucide-react";
 import { motion } from "framer-motion";
-import { api } from "@/lib/api";
+import { api, getErrorMessage } from "@/lib/api";
 import { formatUSD, formatPercent, clsxColor, shortDate } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -50,14 +50,14 @@ export default function BotsPage() {
         setSelected(found || null);
       }
     } catch (e) {
-      setError(e?.response?.data?.detail || "Failed to load bots");
+      setError(getErrorMessage(e, "Failed to load bots"));
     }
   };
 
   useEffect(() => { load(); }, []);
 
   return (
-    <div className="px-4 md:px-6 lg:px-8 py-6">
+    <div className="px-4 md:px-6 lg:px-8 py-6 pb-24">
       <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
         <div>
           <h1 className="font-display font-semibold text-2xl md:text-3xl tracking-tight">AI Trading Bots</h1>
@@ -69,10 +69,10 @@ export default function BotsPage() {
         </div>
       </div>
 
-      <div className="rounded-lg border border-[hsl(var(--warning))]/40 bg-[hsl(var(--warning))]/8 px-4 py-2.5 mb-5 flex items-start gap-2 text-xs">
-        <ShieldAlert className="h-4 w-4 text-[hsl(var(--warning))] shrink-0 mt-0.5" />
+      <div className="rounded-lg border border-[hsl(var(--success))]/40 bg-[hsl(var(--success))]/8 px-4 py-2.5 mb-5 flex items-start gap-2 text-xs">
+        <ShieldAlert className="h-4 w-4 text-[hsl(var(--success))] shrink-0 mt-0.5" />
         <div className="text-muted-foreground">
-          Bots trade on your <strong className="text-foreground">paper portfolio by default</strong>. Enable “Use testnet” only after configuring Binance testnet keys in Settings. HOLD signals or trades below your confidence threshold are skipped automatically.
+          <strong className="text-foreground">5-Agent Risk Protection Active:</strong> Bots evaluate Trend, Liquidity, Volume, Sentiment, and Risk agents before placing any trade. If the Decision Engine triggers a <strong className="text-foreground">Risk Circuit Breaker</strong> or yields <strong className="text-foreground">NO TRADE</strong>, the bot automatically skips execution to preserve your capital.
         </div>
       </div>
 

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { NavLink, useLocation, Link } from "react-router-dom";
 import {
   LayoutDashboard, Sparkles, FlaskConical, Wallet, Star, Bell, Settings as SettingsIcon,
-  TrendingUp, LogOut, ChevronRight, Bot as BotIcon, Check, CreditCard, Crown, Zap
+  TrendingUp, LogOut, ChevronRight, Bot as BotIcon, Check, CreditCard, Crown, Zap, Brain
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
@@ -25,6 +25,9 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 const NAV_ITEMS = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, testId: "nav-dashboard-link" },
   { to: "/signals", label: "AI Signals", icon: Sparkles, testId: "nav-signals-link" },
+  { to: "/trade-intelligence", label: "Trade AI Intelligence", icon: Brain, testId: "nav-trade-intelligence-link" },
+  { to: "/auto-ai-trader", label: "Automatic AI Trader", icon: BotIcon, testId: "nav-auto-ai-trader-link" },
+  { to: "/wallet", label: "Wallet", icon: Wallet, testId: "nav-wallet-link" },
   { to: "/bots", label: "AI Bots", icon: BotIcon, testId: "nav-bots-link" },
   { to: "/backtest", label: "Backtesting", icon: FlaskConical, testId: "nav-backtest-link" },
   { to: "/paper-trading", label: "Paper Trading", icon: Wallet, testId: "nav-paper-trading-link" },
@@ -35,23 +38,23 @@ const NAV_ITEMS = [
 ];
 
 const planBadgeCfg = {
-  free:  { icon: null,   cls: "text-muted-foreground border-border" },
-  pro:   { icon: Zap,    cls: "text-primary border-primary/40 bg-primary/8" },
-  elite: { icon: Crown,  cls: "text-[hsl(var(--warning))] border-[hsl(var(--warning))]/40 bg-[hsl(var(--warning))]/8" },
+  free:  { icon: Crown, cls: "text-[hsl(var(--warning))] border-[hsl(var(--warning))]/40 bg-[hsl(var(--warning))]/8" },
+  pro:   { icon: Crown, cls: "text-[hsl(var(--warning))] border-[hsl(var(--warning))]/40 bg-[hsl(var(--warning))]/8" },
+  elite: { icon: Crown, cls: "text-[hsl(var(--warning))] border-[hsl(var(--warning))]/40 bg-[hsl(var(--warning))]/8" },
 };
 
 export function AppShell({ children }) {
   const { user, signOut } = useAuth();
   const { subscription } = useSubscription();
   const location = useLocation();
-  const planId = subscription?.plan_id || "free";
-  const planCfg = planBadgeCfg[planId] || planBadgeCfg.free;
+  const planId = "elite";
+  const planCfg = planBadgeCfg.elite;
   const PlanIcon = planCfg.icon;
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex">
+    <div className="min-h-screen bg-background text-foreground flex w-full">
       {/* Left rail */}
-      <aside className="hidden md:flex md:w-64 lg:w-72 flex-col border-r border-border bg-card/40 backdrop-blur-sm" data-testid="app-sidebar">
+      <aside className="hidden md:flex md:w-64 lg:w-72 flex-col border-r border-border bg-card/40 backdrop-blur-sm sticky top-0 h-screen shrink-0 overflow-y-auto z-30" data-testid="app-sidebar">
         <div className="px-5 py-5 border-b border-border">
           <NavLink to="/dashboard" className="flex items-center gap-2" data-testid="brand-link">
             <div className="h-9 w-9 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
@@ -175,7 +178,7 @@ export function AppShell({ children }) {
           </div>
         </div>
 
-        <main className="flex-1 min-w-0">{children}</main>
+        <main className="flex-1 min-w-0 pb-20">{children}</main>
       </div>
     </div>
   );

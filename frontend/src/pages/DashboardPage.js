@@ -4,7 +4,7 @@ import { Sparkles, TrendingUp, TrendingDown, ArrowRight, RefreshCw } from "lucid
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 
-import { api } from "@/lib/api";
+import { api, getErrorMessage } from "@/lib/api";
 import { formatUSD, formatCompact, formatPercent, clsxColor } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -48,7 +48,7 @@ export default function DashboardPage() {
       const { data } = await api.get("/market/overview", { params: { per_page: 25 } });
       setCoins(data.coins || []);
     } catch (e) {
-      setError(e?.response?.data?.detail || "Failed to load market data");
+      setError(getErrorMessage(e, "Failed to load market data"));
     }
   };
 
@@ -88,7 +88,7 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="px-4 md:px-6 lg:px-8 py-6">
+    <div className="px-4 md:px-6 lg:px-8 py-6 pb-24">
       <div className="flex items-center justify-between mb-5">
         <div>
           <h1 className="font-display font-semibold text-2xl md:text-3xl tracking-tight">Markets Overview</h1>

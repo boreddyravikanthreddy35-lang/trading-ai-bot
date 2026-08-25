@@ -116,8 +116,12 @@ async def generate_signal(req: SignalRequest, user: Optional[Dict[str, Any]] = D
 
 
 @router.get("/history")
-async def list_signals(user: Dict[str, Any] = Depends(current_user), limit: int = 50):
-    cursor = _db().signal_runs.find({"user_id": user["id"]}, {"_id": 0}).sort("created_at", -1).limit(limit)
+async def list_signals(user: Optional[Dict[str, Any]] = Depends(optional_user), limit: int = 50):
+    user_id = user["id"] if user else None
+    if user_id:
+        cursor = _db().signal_runs.find({"user_id": user_id}, {"_id": 0}).sort("created_at", -1).limit(limit)
+    else:
+        cursor = _db().signal_runs.find({}, {"_id": 0}).sort("created_at", -1).limit(limit)
     docs = await cursor.to_list(limit)
     return {"signals": docs}
 

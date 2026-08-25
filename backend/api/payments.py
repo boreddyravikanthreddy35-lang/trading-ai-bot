@@ -16,9 +16,28 @@ from typing import Any, Dict, Optional
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
 
-from emergentintegrations.payments.stripe.checkout import (
-    StripeCheckout, CheckoutSessionRequest,
-)
+try:
+    from emergentintegrations.payments.stripe.checkout import (
+        StripeCheckout, CheckoutSessionRequest,
+    )
+except Exception:  # pragma: no cover - optional dependency for local runs
+    class CheckoutSessionRequest:
+        def __init__(self, **kwargs):
+            self.__dict__.update(kwargs)
+
+    class StripeCheckout:
+        def __init__(self, *args, **kwargs):
+            self.api_key = kwargs.get("api_key")
+            self.webhook_url = kwargs.get("webhook_url")
+
+        async def create_checkout_session(self, req):
+            raise RuntimeError("Stripe integration unavailable")
+
+        async def get_checkout_status(self, session_id):
+            raise RuntimeError("Stripe integration unavailable")
+
+        async def handle_webhook(self, payload, sig):
+            raise RuntimeError("Stripe integration unavailable")
 
 from services.auth import current_user, optional_user
 from services.plans import PLANS, PAID_PLAN_IDS, public_all, public_plan, get_plan
@@ -55,31 +74,34 @@ async def list_plans():
 
 
 @router.get("/subscription")
-async def my_subscription(user: Dict[str, Any] = Depends(current_user)):
-    """Return the current user's plan + expiry + limits."""
-    doc = await _db().subscriptions.find_one({"user_id": user["id"]}, {"_id": 0})
-    plan_id = (doc or {}).get("plan_id") or "free"
-    plan = get_plan(plan_id) or get_plan("free")
-    expires_at = (doc or {}).get("expires_at")
-    # If expired → auto-downgrade to free (soft — don't mutate DB until next check)
-    if expires_at and datetime.fromisoformat(expires_at) < _now():
-        plan_id = "free"
-        plan = get_plan("free")
-        expires_at = None
-    # Also count today's signals for gating display
+async def my_subscription(user: Optional[Dict[str, Any]] = Depends(optional_user)):
+    """Return Unlimited Elite plan for all users (No subscription restrictions)."""
+    user_id = user["id"] if user else "demo-user"
+    plan = get_plan("elite")
+    
+    # Count today's signals for display
     today_key = _now().strftime("%Y-%m-%d")
-    signals_today = await _db().signal_runs.count_documents({
-        "user_id": user["id"],
-        "created_at": {"$regex": f"^{today_key}"},
-    })
-    active_bots = await _db().bots.count_documents({"user_id": user["id"], "active": True})
+    try:
+        signals_today = await _db().signal_runs.count_documents({
+            "user_id": user_id,
+            "created_at": {"$regex": f"^{today_key}"},
+        })
+        active_bots = await _db().bots.count_documents({"user_id": user_id, "active": True})
+    except Exception:
+        signals_today = 0
+        active_bots = 0
+
     return {
         "plan": public_plan(plan),
-        "plan_id": plan_id,
-        "expires_at": expires_at,
+        "plan_id": "elite",
+        "expires_at": None,
+        "status": "unlimited",
         "usage": {
             "signals_today": signals_today,
+            "signals_limit": -1,
             "active_bots": active_bots,
+            "max_bots": -1,
+            "testnet": True,
         },
     }
 

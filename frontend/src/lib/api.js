@@ -18,12 +18,29 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Global 401 handler — clear stale token
+export function getErrorMessage(error, fallback = "An unexpected error occurred") {
+  if (!error) return fallback;
+  if (typeof error === "string") return error;
+  const detail = error?.response?.data?.detail || error?.response?.data?.message || error?.message;
+  if (typeof detail === "string") return detail;
+  if (Array.isArray(detail)) {
+    return detail.map((d) => (typeof d === "string" ? d : d?.msg || JSON.stringify(d))).join(", ");
+  }
+  if (detail && typeof detail === "object") {
+    return detail.msg || detail.message || JSON.stringify(detail);
+  }
+  return fallback;
+}
+
+// Global 401 handler and error message normalizer
 api.interceptors.response.use(
   (r) => r,
   (error) => {
     if (error?.response?.status === 401) {
       localStorage.removeItem("sf_token");
+    }
+    if (error) {
+      error.normalizedMessage = getErrorMessage(error);
     }
     return Promise.reject(error);
   }

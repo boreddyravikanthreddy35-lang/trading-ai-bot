@@ -70,7 +70,7 @@ export default function WatchlistsPage() {
   };
 
   return (
-    <div className="px-4 md:px-6 lg:px-8 py-6">
+    <div className="px-4 md:px-6 lg:px-8 py-6 pb-24">
       <div className="flex items-center justify-between mb-5">
         <div>
           <h1 className="font-display font-semibold text-2xl md:text-3xl tracking-tight">Watchlists</h1>

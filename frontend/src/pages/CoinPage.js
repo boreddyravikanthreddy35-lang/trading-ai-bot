@@ -214,7 +214,7 @@ export default function CoinPage() {
                 </>
               ) : signalRes?.results?.length ? (
                 signalRes.results.map((r, i) => (
-                  <SignalCard key={i} result={r} symbol={signalRes.symbol} timeframe={signalRes.timeframe} signalId={signalRes.id} />
+                  <SignalCard key={i} result={r} symbol={signalRes.symbol} timeframe={signalRes.timeframe} signalId={signalRes.id} indicators={signalRes.indicators} />
                 ))
               ) : (
                 <div className="text-xs text-muted-foreground">Choose a model and generate a signal to see AI reasoning here.</div>

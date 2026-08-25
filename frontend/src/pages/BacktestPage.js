@@ -118,7 +118,7 @@ export default function BacktestPage() {
   const metrics = r?.metrics;
 
   return (
-    <div className="px-4 md:px-6 lg:px-8 py-6">
+    <div className="px-4 md:px-6 lg:px-8 py-6 pb-24">
       <div className="mb-5">
         <h1 className="font-display font-semibold text-2xl md:text-3xl tracking-tight">Strategy Backtesting</h1>
         <p className="text-sm text-muted-foreground mt-1">Simulate trading strategies on real historical market data.</p>

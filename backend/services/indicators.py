@@ -56,16 +56,26 @@ def compute_indicators(df: pd.DataFrame) -> Dict[str, Any]:
 
     last = df.iloc[-1]
 
+    volatility = _round(df["close"].pct_change().std() * (24**0.5), 4)
+
     result = {
         "price": _round(last["close"], 4),
+        "close": _round(last["close"], 4),
         "sma_20": _round(last["sma_20"], 4),
+        "sma20": _round(last["sma_20"], 4),
         "sma_50": _round(last["sma_50"], 4),
+        "sma50": _round(last["sma_50"], 4),
         "ema_12": _round(last["ema_12"], 4),
+        "ema12": _round(last["ema_12"], 4),
         "ema_26": _round(last["ema_26"], 4),
+        "ema26": _round(last["ema_26"], 4),
         "rsi_14": _round(last["rsi_14"], 2),
+        "rsi": _round(last["rsi_14"], 2),
+        "RSI": _round(last["rsi_14"], 2),
         "macd": _round(last["macd"], 4),
         "macd_signal": _round(last["macd_signal"], 4),
         "macd_hist": _round(last["macd_hist"], 4),
+        "volatility": volatility,
         "high_24h": _round(df["high"].tail(24).max(), 4),
         "low_24h": _round(df["low"].tail(24).min(), 4),
         "volume_24h": _round(df["volume"].tail(24).sum(), 2),

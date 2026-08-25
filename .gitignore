@@ -89,3 +89,5 @@ frontend/node_modules/.cache/default-development/1.pack
 credentials.json
 *.key
 .credentials
+db_local_backup.json
+*.local.json

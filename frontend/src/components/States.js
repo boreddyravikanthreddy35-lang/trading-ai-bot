@@ -23,9 +23,17 @@ export function LoadingRow() {
 }
 
 export function ErrorState({ message = "Something went wrong", onRetry, testId = "error-banner" }) {
+  let displayMessage = message;
+  if (displayMessage && typeof displayMessage === "object") {
+    if (Array.isArray(displayMessage)) {
+      displayMessage = displayMessage.map((d) => (typeof d === "string" ? d : d?.msg || JSON.stringify(d))).join(", ");
+    } else {
+      displayMessage = displayMessage.msg || displayMessage.message || JSON.stringify(displayMessage);
+    }
+  }
   return (
     <div data-testid={testId} className="rounded-xl border border-[hsl(var(--danger))]/40 bg-[hsl(var(--danger))]/8 p-4">
-      <div className="text-sm text-[hsl(var(--danger))] font-medium">{message}</div>
+      <div className="text-sm text-[hsl(var(--danger))] font-medium">{String(displayMessage || "Something went wrong")}</div>
       {onRetry ? (
         <button data-testid="retry-button" onClick={onRetry} className="mt-2 text-xs underline text-muted-foreground hover:text-foreground">
           Retry

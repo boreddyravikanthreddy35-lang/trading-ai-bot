@@ -29,7 +29,14 @@ function makeDevServerV5Compatible(devServerConfig) {
         : "http";
   compatibleConfig.headers = {
     ...compatibleConfig.headers,
-    "Cross-Origin-Resource-Policy": "same-origin",
+  };
+  // Proxy /api requests to the backend
+  compatibleConfig.proxy = {
+    "/api": {
+      target: process.env.REACT_APP_BACKEND_URL || "http://localhost:8000",
+      changeOrigin: true,
+      secure: false,
+    },
   };
 
   if (onBeforeSetupMiddleware || setupMiddlewares) {

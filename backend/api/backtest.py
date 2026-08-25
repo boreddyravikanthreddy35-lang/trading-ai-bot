@@ -59,7 +59,7 @@ async def run_backtest(req: BacktestRequest, user: Optional[Dict[str, Any]] = De
         "user_id": user["id"] if user else None,
         "symbol": req.symbol,
         "interval": req.interval,
-        "limit": req.limit,
+        "candle_limit": req.limit,
         "strategy": req.strategy,
         "initial_cash": req.initial_cash,
         "fee_rate": req.fee_rate,

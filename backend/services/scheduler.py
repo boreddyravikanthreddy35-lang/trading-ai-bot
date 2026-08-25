@@ -116,6 +116,26 @@ async def _alerts_job():
         )))
 
 
+async def _auto_ai_trader_job():
+    """Background continuous AI trading job running automatically every 60s."""
+    if _db is None:
+        return
+    try:
+        from services.auto_ai_trader import scan_coins, get_user_coins, get_ai_enabled
+        # Scan active user (prevent duplicate concurrent user scans)
+        for user_id in ["aabf552e-7359-40b0-95ce-2d6e046022f4", "default_user"]:
+            if get_ai_enabled(user_id):
+                coins = get_user_coins(user_id)
+                if coins:
+                    try:
+                        await scan_coins(_db, user_id, coins)
+                    except Exception as e:
+                        logger.warning(f"Background AI scan error for {user_id}: {e}")
+                break
+    except Exception as e:
+        logger.exception("Auto AI Trader background job error: %s", e)
+
+
 async def start(db):
     """Start the scheduler and schedule all currently-active bots + alerts poller."""
     global _scheduler, _db
@@ -128,11 +148,14 @@ async def start(db):
     # Global alerts poller — every 60s
     _scheduler.add_job(_alerts_job, IntervalTrigger(seconds=60), id="alerts-check", replace_existing=True, max_instances=1, coalesce=True)
 
+    # Auto AI Trader continuous background job — every 60s
+    _scheduler.add_job(_auto_ai_trader_job, IntervalTrigger(seconds=60), id="auto-ai-trader-poll", replace_existing=True, max_instances=1, coalesce=True)
+
     # Schedule active bots
     active_bots = await db.bots.find({"active": True}, {"_id": 0}).to_list(500)
     for bot in active_bots:
         schedule_bot(bot)
-    logger.info("Scheduler started; %d active bots + alerts poller", len(active_bots))
+    logger.info("Scheduler started; %d active bots + alerts + continuous Auto AI Trader poller", len(active_bots))
 
 
 def shutdown():

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Settings as SettingsIcon, Key, Shield, LogOut, User as UserIcon, PlugZap, CheckCircle2, XCircle } from "lucide-react";
-import { api } from "@/lib/api";
+import { api, getErrorMessage } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,7 +27,7 @@ export default function SettingsPage() {
       setSettings(data);
       setEnabled(!!data.enabled);
     } catch (e) {
-      setError(e?.response?.data?.detail || "Failed to load settings");
+      setError(getErrorMessage(e, "Failed to load settings"));
     }
   };
 
@@ -40,7 +40,7 @@ export default function SettingsPage() {
       toast.success("Binance testnet keys saved");
       setApiKey(""); setApiSecret("");
       load();
-    } catch (e) { toast.error(e?.response?.data?.detail || "Save failed"); }
+    } catch (e) { toast.error(getErrorMessage(e, "Save failed")); }
   };
 
   const clearKeys = async () => {
@@ -68,7 +68,7 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="px-4 md:px-6 lg:px-8 py-6 max-w-3xl">
+    <div className="px-4 md:px-6 lg:px-8 py-6 pb-24 max-w-3xl">
       <div className="mb-6">
         <h1 className="font-display font-semibold text-2xl md:text-3xl tracking-tight">Settings</h1>
         <p className="text-sm text-muted-foreground mt-1">Manage your account and exchange integration.</p>

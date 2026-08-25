@@ -178,26 +178,29 @@ async def run_bot_once(db, bot: Dict[str, Any]) -> Dict[str, Any]:
             session_id=f"bot-{bot_id}-{run['id']}",
         )
     except Exception as e:
-        run["status"] = "error"
-        run["error"] = f"ai_call_failed: {e}"
-        await db.bot_runs.insert_one(dict(run))
-        return run
+        sig_res = ai._build_technical_fallback_signal(model, symbol, coin_meta, indicators, timeframe)
 
     if "error" in sig_res or not sig_res.get("signal"):
-        run["status"] = "error"
-        run["error"] = sig_res.get("error", "unknown_signal_error")
-        run["ai_raw"] = sig_res.get("raw")
-        await db.bot_runs.insert_one(dict(run))
-        return run
+        sig_res = ai._build_technical_fallback_signal(model, symbol, coin_meta, indicators, timeframe)
 
     signal = sig_res["signal"]
     run["signal"] = signal
     run["indicators"] = indicators
 
-    # 3. Enforce guardrails & decide
+    # 3. Enforce 5-Agent Decision Engine & Risk Circuit Breaker guardrails
     action = signal.get("action", "HOLD").upper()
     confidence = float(signal.get("confidence", 0.0))
+    trade_intel = sig_res.get("trade_intelligence") or {}
+    decision = trade_intel.get("decision_engine") or {}
+    verdict = decision.get("verdict", "WAIT")
+    circuit_breaker = decision.get("circuit_breaker_tripped", False)
+    cb_reason = decision.get("circuit_breaker_reason") or decision.get("reason")
     reasons = []
+
+    if circuit_breaker or verdict == "NO TRADE":
+        reasons.append(f"5-Agent Risk Circuit Breaker: {cb_reason or 'Risk score too low'}")
+    elif verdict == "WAIT" and action != "HOLD":
+        reasons.append(f"5-Agent Decision Engine recommends WAIT (Setup quality score: {decision.get('trade_score', 0)}/100)")
 
     if action not in allow_actions:
         reasons.append(f"action {action} not in allow_actions")

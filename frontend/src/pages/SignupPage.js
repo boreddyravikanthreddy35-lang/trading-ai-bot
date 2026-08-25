@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
@@ -8,13 +8,59 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
+const GOOGLE_CLIENT_ID = "152641593792-lk9n6hsi6d4k7uskr843h79cm09v9pdj.apps.googleusercontent.com";
+
 export default function SignupPage() {
-  const { signUp } = useAuth();
+  const { signUp, signInWithGoogleToken } = useAuth();
   const nav = useNavigate();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
+  const googleBtnRef = useRef(null);
+
+  const handleGoogleResponse = useCallback(async (response) => {
+    if (!response?.credential) {
+      toast.error("Google sign-in failed — no credential received");
+      return;
+    }
+    setBusy(true);
+    try {
+      await signInWithGoogleToken(response.credential);
+      toast.success("Welcome to SignalForge!");
+      nav("/dashboard", { replace: true });
+    } catch (e) {
+      toast.error(e?.response?.data?.detail || "Google sign-in failed");
+    } finally {
+      setBusy(false);
+    }
+  }, [signInWithGoogleToken, nav]);
+
+  useEffect(() => {
+    // Initialize Google Identity Services
+    const initGoogle = () => {
+      if (!window.google?.accounts?.id) {
+        // GSI script not loaded yet, retry
+        setTimeout(initGoogle, 300);
+        return;
+      }
+      window.google.accounts.id.initialize({
+        client_id: GOOGLE_CLIENT_ID,
+        callback: handleGoogleResponse,
+        auto_select: false,
+      });
+      if (googleBtnRef.current) {
+        window.google.accounts.id.renderButton(googleBtnRef.current, {
+          theme: "outline",
+          size: "large",
+          width: googleBtnRef.current.offsetWidth || 380,
+          text: "continue_with",
+          shape: "rectangular",
+        });
+      }
+    };
+    initGoogle();
+  }, [handleGoogleResponse]);
 
   const submit = async (e) => {
     e.preventDefault();
@@ -30,12 +76,6 @@ export default function SignupPage() {
     } finally {
       setBusy(false);
     }
-  };
-
-  const googleSignup = () => {
-    const redirect = `${window.location.origin}/oauth/callback`;
-    const url = `https://auth.emergentagent.com/?redirect=${encodeURIComponent(redirect)}`;
-    window.location.href = url;
   };
 
   return (
@@ -72,9 +112,8 @@ export default function SignupPage() {
             <p className="text-sm text-muted-foreground mt-1">$10,000 paper account included. No credit card.</p>
           </div>
 
-          <Button type="button" variant="outline" className="w-full h-11" onClick={googleSignup} data-testid="google-oauth-button">
-            <GoogleIcon /> Continue with Google
-          </Button>
+          {/* Google Sign-In button rendered by GSI */}
+          <div ref={googleBtnRef} className="w-full min-h-[44px] flex items-center justify-center" data-testid="google-oauth-button" />
 
           <div className="flex items-center gap-3">
             <div className="h-px flex-1 bg-border" />
@@ -116,13 +155,5 @@ export default function SignupPage() {
         </form>
       </div>
     </div>
-  );
-}
-
-function GoogleIcon() {
-  return (
-    <svg viewBox="0 0 24 24" className="h-4 w-4 mr-2" aria-hidden>
-      <path fill="#EA4335" d="M12 10.2v3.9h5.4c-.2 1.5-1.7 4.4-5.4 4.4-3.2 0-5.9-2.7-5.9-6s2.7-6 5.9-6c1.9 0 3.1.8 3.8 1.5l2.6-2.5C16.9 4 14.7 3 12 3 6.9 3 2.7 7.2 2.7 12.5S6.9 22 12 22c6.9 0 9.4-4.8 9.4-8.5 0-.6-.1-1-.1-1.3H12z"/>
-    </svg>
   );
 }

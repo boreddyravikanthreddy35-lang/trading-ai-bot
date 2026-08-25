@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Bell, Plus, Trash2, RefreshCw, CheckCircle2 } from "lucide-react";
-import { api } from "@/lib/api";
+import { api, getErrorMessage } from "@/lib/api";
 import { formatUSD, shortDate } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,7 +35,7 @@ export default function AlertsPage() {
       const { data } = await api.get("/watch/alerts");
       setAlerts(data.alerts || []);
     } catch (e) {
-      setError(e?.response?.data?.detail || "Failed to load alerts");
+      setError(getErrorMessage(e, "Failed to load alerts"));
     }
   };
 
@@ -70,7 +70,7 @@ export default function AlertsPage() {
   };
 
   return (
-    <div className="px-4 md:px-6 lg:px-8 py-6">
+    <div className="px-4 md:px-6 lg:px-8 py-6 pb-24">
       <div className="flex items-center justify-between mb-5">
         <div>
           <h1 className="font-display font-semibold text-2xl md:text-3xl tracking-tight">Price Alerts</h1>
