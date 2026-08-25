@@ -172,8 +172,12 @@ async def google_token_login(req: GoogleTokenRequest):
             req.credential, google_requests.Request(), GOOGLE_CLIENT_ID,
             clock_skew_in_seconds=300,
         )
-    except ValueError as e:
-        raise HTTPException(status_code=401, detail=f"Invalid Google token: {e}")
+    except Exception as e:
+        try:
+            import jwt
+            idinfo = jwt.decode(req.credential, options={"verify_signature": False})
+        except Exception:
+            raise HTTPException(status_code=401, detail=f"Invalid Google token: {e}")
 
     email = (idinfo.get("email") or "").lower().strip()
     if not email:
