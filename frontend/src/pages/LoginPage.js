@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
-import { TrendingUp, Mail, Lock, LogIn } from "lucide-react";
+import { TrendingUp, Mail, Lock, LogIn, Zap } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,13 +11,28 @@ import { Label } from "@/components/ui/label";
 const GOOGLE_CLIENT_ID = "152641593792-lk9n6hsi6d4k7uskr843h79cm09v9pdj.apps.googleusercontent.com";
 
 export default function LoginPage() {
-  const { signIn, signInWithGoogleToken } = useAuth();
+  const { signIn, signInDemo, signInWithGoogleToken } = useAuth();
   const nav = useNavigate();
   const loc = useLocation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const googleBtnRef = useRef(null);
+
+  const handleDemoLogin = async () => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      await signInDemo();
+      toast.success("Logged in as Demo Trader!");
+      const dest = loc.state?.from?.pathname || "/dashboard";
+      nav(dest, { replace: true });
+    } catch (e) {
+      toast.error(e?.response?.data?.detail || "Demo sign-in failed");
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const handleGoogleResponse = useCallback(async (response) => {
     if (!response?.credential) {
@@ -116,6 +131,17 @@ export default function LoginPage() {
 
           {/* Google Sign-In button rendered by GSI */}
           <div ref={googleBtnRef} className="w-full min-h-[44px] flex items-center justify-center" data-testid="google-oauth-button" />
+
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleDemoLogin}
+            disabled={busy}
+            className="w-full h-11 border-primary/40 bg-primary/10 hover:bg-primary/20 text-primary font-semibold flex items-center justify-center gap-2 transition-all shadow-sm"
+          >
+            <Zap className="h-4 w-4 text-primary animate-pulse" />
+            1-Click Instant Trader Sign In (No Google needed)
+          </Button>
 
           <div className="flex items-center gap-3">
             <div className="h-px flex-1 bg-border" />

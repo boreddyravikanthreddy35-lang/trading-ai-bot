@@ -66,6 +66,14 @@ export function AuthProvider({ children }) {
     return data.user;
   }, []);
 
+  const signInDemo = useCallback(async () => {
+    const { data } = await api.post("/auth/demo");
+    localStorage.setItem("sf_token", data.token);
+    if (data.user?.id) localStorage.setItem("user_id", data.user.id);
+    setUser(data.user);
+    return data.user;
+  }, []);
+
   const signOut = useCallback(() => {
     localStorage.removeItem("sf_token");
     localStorage.removeItem("user_id");
@@ -74,7 +82,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading, signIn, signUp, signInWithGoogleSession, signInWithGoogleToken, signInWithFirebase, signOut, refresh: fetchMe, firebaseEnabled: FIREBASE_ENABLED }}>
+    <AuthContext.Provider value={{ user, loading, signIn, signUp, signInDemo, signInWithGoogleSession, signInWithGoogleToken, signInWithFirebase, signOut, refresh: fetchMe, firebaseEnabled: FIREBASE_ENABLED }}>
       {children}
     </AuthContext.Provider>
   );

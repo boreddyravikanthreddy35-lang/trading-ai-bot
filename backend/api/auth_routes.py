@@ -97,6 +97,29 @@ async def login(req: LoginRequest):
     return {"user": _serialize_user(user), "token": token}
 
 
+@router.post("/demo")
+async def demo_login():
+    """1-Click Instant Demo Login for immediate live access."""
+    email = "trader@signalforge.ai"
+    user = await _db().users.find_one({"email": email}, {"_id": 0})
+    if not user:
+        user = {
+            "id": "aabf552e-7359-40b0-95ce-2d6e046022f4",
+            "email": email,
+            "name": "Boreddy Ravikanth Reddy",
+            "password_hash": hash_password("demo123456"),
+            "provider": "demo",
+            "picture": None,
+            "created_at": datetime.now(tz=timezone.utc).isoformat(),
+        }
+        try:
+            await _db().users.insert_one(dict(user))
+        except Exception:
+            pass
+    token = create_access_token(user["id"], user["email"])
+    return {"user": _serialize_user(user), "token": token}
+
+
 @router.post("/google")
 async def google_oauth(req: GoogleOAuthRequest):
     """
