@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { ErrorState } from "@/components/States";
 
-const COINS = ["BTCUSDT","ETHUSDT","SOLUSDT","PEPEUSDT","BNBUSDT","ADAUSDT","DOGEUSDT","XRPUSDT","AVAXUSDT","LINKUSDT","SHIBUSDT","MATICUSDT"];
+const COINS = ["BTCUSDT","ETHUSDT","SOLUSDT","BNBUSDT","ADAUSDT","DOGEUSDT","XRPUSDT","AVAXUSDT","LINKUSDT","DOTUSDT","MATICUSDT","BNBUSDT"];
 const SCAN_SECS = 60;
 const LS_CAPITAL_KEY = "auto_ai_trader_capital";
 const LS_COINS_KEY = "auto_ai_trader_fixed_coins";
@@ -70,9 +70,9 @@ export default function AutoAITraderPage() {
   const getSavedCoins = () => {
     try {
       const saved = localStorage.getItem(LS_COINS_KEY);
-      return saved ? JSON.parse(saved) : ["BTCUSDT", "ETHUSDT", "SOLUSDT", "PEPEUSDT", "BNBUSDT", "ADAUSDT"];
+      return saved ? JSON.parse(saved) : ["BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT", "ADAUSDT", "DOGEUSDT"];
     } catch {
-      return ["BTCUSDT", "ETHUSDT", "SOLUSDT", "PEPEUSDT", "BNBUSDT", "ADAUSDT"];
+      return ["BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT", "ADAUSDT", "DOGEUSDT"];
     }
   };
   const [fixedCoins, setFixedCoins] = useState(getSavedCoins);

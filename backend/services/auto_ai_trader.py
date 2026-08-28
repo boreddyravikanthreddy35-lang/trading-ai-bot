@@ -27,7 +27,7 @@ from services import risk_engine, order_service, execution_service, wallet_servi
 
 
 DEFAULT_CAPITAL = 1000.0
-DEFAULT_COINS = ["BTCUSDT", "ETHUSDT", "SOLUSDT", "PEPEUSDT", "BNBUSDT", "ADAUSDT", "DOGEUSDT", "XRPUSDT", "AVAXUSDT", "LINKUSDT"]
+DEFAULT_COINS = ["BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT", "ADAUSDT", "DOGEUSDT", "XRPUSDT", "AVAXUSDT", "LINKUSDT", "DOTUSDT"]
 FEE_RATE = 0.001
 MODEL_VERSION = "v2.0"
 INR_PER_USDT = 88.0
@@ -37,6 +37,9 @@ _USER_BUDGET: Dict[str, Dict[str, Any]] = {}
 _USER_COINS: Dict[str, List[str]] = {}
 _LATEST_TRADES: Dict[str, List[Dict[str, Any]]] = {}
 _AI_ENABLED: Dict[str, bool] = {}
+# Track last rejection time per user+symbol to avoid flooding history (10 min cooldown)
+_REJECTION_COOLDOWN: Dict[str, float] = {}
+REJECTION_COOLDOWN_SECS = 600  # 10 minutes between rejection records for same coin
 
 
 def _now_iso() -> str:
@@ -492,15 +495,21 @@ async def run_ai_cycle(db, user_id: str, symbol: str,
                 f"(${budget_summary['total_active_invested_usdt']:,.2f} USDT invested). "
                 f"AI will NOT buy more coins until existing positions are sold or budget is increased."
             )
-            await _record_ai_decision(
-                db, user_id, symbol, "BUY", score, confidence, market_regime,
-                current_price, take_profit, stop_loss,
-                "REJECTED", budget_reason, reason, risk_score=95.0
-            )
-            _add_trade_log(user_id, {
-                "time": _now_local(), "symbol": symbol, "action": "BUY_REJECTED",
-                "reason": budget_reason, "score": score
-            })
+            # Cooldown: only log once per 10 minutes per coin to avoid flooding trade history
+            import time
+            cooldown_key = f"{user_id}:{symbol}:budget"
+            last_rej = _REJECTION_COOLDOWN.get(cooldown_key, 0)
+            if time.time() - last_rej > REJECTION_COOLDOWN_SECS:
+                _REJECTION_COOLDOWN[cooldown_key] = time.time()
+                await _record_ai_decision(
+                    db, user_id, symbol, "BUY", score, confidence, market_regime,
+                    current_price, take_profit, stop_loss,
+                    "REJECTED", budget_reason, reason, risk_score=95.0
+                )
+                _add_trade_log(user_id, {
+                    "time": _now_local(), "symbol": symbol, "action": "BUY_REJECTED",
+                    "reason": budget_reason, "score": score
+                })
             return {
                 "symbol": symbol, "action": "BUY_REJECTED",
                 "score": score, "risk_reason": budget_reason, "budget_full": True
@@ -535,15 +544,21 @@ async def run_ai_cycle(db, user_id: str, symbol: str,
         )
 
         if not approved:
-            await _record_ai_decision(
-                db, user_id, symbol, "BUY", score, confidence, market_regime,
-                current_price, take_profit, stop_loss,
-                "REJECTED", risk_reason, reason, risk_score=risk_score
-            )
-            _add_trade_log(user_id, {
-                "time": _now_local(), "symbol": symbol, "action": "BUY_REJECTED",
-                "reason": risk_reason, "score": score
-            })
+            # Cooldown: only log once per 10 minutes per coin to avoid flooding trade history
+            import time
+            cooldown_key = f"{user_id}:{symbol}:risk"
+            last_rej = _REJECTION_COOLDOWN.get(cooldown_key, 0)
+            if time.time() - last_rej > REJECTION_COOLDOWN_SECS:
+                _REJECTION_COOLDOWN[cooldown_key] = time.time()
+                await _record_ai_decision(
+                    db, user_id, symbol, "BUY", score, confidence, market_regime,
+                    current_price, take_profit, stop_loss,
+                    "REJECTED", risk_reason, reason, risk_score=risk_score
+                )
+                _add_trade_log(user_id, {
+                    "time": _now_local(), "symbol": symbol, "action": "BUY_REJECTED",
+                    "reason": risk_reason, "score": score
+                })
             return {
                 "symbol": symbol, "action": "BUY_REJECTED",
                 "score": score, "risk_reason": risk_reason
@@ -725,9 +740,70 @@ async def scan_coins(db, user_id: str, symbols: List[str]) -> List[Dict]:
 
 
 async def get_live_positions_with_pnl(db, user_id: str) -> List[Dict]:
-    """Get all open positions with live current prices and unrealized P&L."""
+    """Get all open positions with live current prices and unrealized P&L.
+    Falls back to rebuilding positions from trade history if DB returns empty.
+    """
     try:
         positions = await position_service.get_open_positions(db, user_id)
+
+        # ── FALLBACK: If no positions found, rebuild from trade history ──────
+        # This handles the case where server restarted and in-memory positions were lost,
+        # or Supabase positions table is empty but trades exist.
+        if not positions:
+            try:
+                all_trades = await db.trades.find(
+                    {"user_id": user_id, "source": "AI_AUTO"}, {"_id": 0}
+                ).sort("created_at", 1).to_list(500)
+
+                # Net BUY - SELL per symbol
+                net_qty: Dict[str, float] = {}
+                net_cost: Dict[str, float] = {}
+                avg_price: Dict[str, float] = {}
+
+                for t in all_trades:
+                    sym = t.get("symbol", "")
+                    if not sym:
+                        continue
+                    qty = float(t.get("quantity", 0))
+                    price = float(t.get("price", 0))
+                    side = str(t.get("side", "BUY")).upper()
+                    cost = float(t.get("quote_amount") or (qty * price) or 0)
+
+                    if side == "BUY" and qty > 0 and price > 0:
+                        prev_qty = net_qty.get(sym, 0)
+                        prev_cost = net_cost.get(sym, 0)
+                        new_qty = prev_qty + qty
+                        new_cost = prev_cost + cost
+                        net_qty[sym] = new_qty
+                        net_cost[sym] = new_cost
+                        avg_price[sym] = new_cost / new_qty if new_qty > 0 else price
+                    elif side == "SELL" and qty > 0:
+                        net_qty[sym] = max(0.0, net_qty.get(sym, 0) - qty)
+
+                for sym, qty in net_qty.items():
+                    if qty > 0.000001:
+                        avg_p = avg_price.get(sym, 0)
+                        cost = net_cost.get(sym, qty * avg_p)
+                        pos = {
+                            "symbol": sym,
+                            "quantity": round(qty, 8),
+                            "average_entry_price": round(avg_p, 8),
+                            "avg_buy_price": round(avg_p, 8),
+                            "total_invested": round(cost, 2),
+                            "status": "OPEN",
+                            "user_id": user_id,
+                        }
+                        # Restore to DB so next call doesn't need fallback
+                        try:
+                            await position_service.upsert_buy(
+                                db, user_id, sym, qty, avg_p, cost
+                            )
+                        except Exception:
+                            pass
+                        positions.append(pos)
+            except Exception as fe:
+                print(f"[auto_ai_trader] position fallback rebuild error: {fe}")
+
         if not positions:
             return []
 
