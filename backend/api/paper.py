@@ -36,10 +36,28 @@ class AddFundsRequest(BaseModel):
 async def _ensure_portfolio(user_id: str) -> Dict[str, Any]:
     doc = await _db().portfolios.find_one({"user_id": user_id}, {"_id": 0})
     if doc:
+        # Auto-fix old portfolios that were accidentally created with 0 cash
+        if float(doc.get("cash", 0)) == 0.0:
+            import asyncio
+            trades_count = 0
+            try:
+                cursor = _db().trades.find({"user_id": user_id})
+                docs = await cursor.to_list(1)
+                trades_count = len(docs)
+            except Exception:
+                pass
+            if trades_count == 0:
+                # No trades yet — safe to auto-reset cash to starting amount
+                doc["cash"] = STARTING_CASH
+                await _db().portfolios.update_one(
+                    {"user_id": user_id},
+                    {"$set": {"cash": STARTING_CASH}},
+                )
         return doc
+    # Brand new user — start with full demo cash
     doc = {
         "user_id": user_id,
-        "cash": 0.0,
+        "cash": STARTING_CASH,
         "created_at": datetime.now(tz=timezone.utc).isoformat(),
     }
     await _db().portfolios.insert_one(dict(doc))
